@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Image2URL Clipboard Booster
  * Plugin URI: https://www.image2url.com/
- * Description: 让 Gutenberg 粘贴图片即上云，自动返回可长期访问的外链，减少站点 inode 占用。支持自定义上传端点与体积限制。
+ * Description: Gutenberg 粘贴图片即上云，自动返回可长期访问的外链，减少站点 inode 占用。支持自定义上传端点与体积限制。
  * Version: 0.1.0
  * Author: image2url
  * License: MIT
- * Text Domain: image2url
+ * Text Domain: image2url-clipboard-booster
  */
 
 if (!defined('ABSPATH')) {

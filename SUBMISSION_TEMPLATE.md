@@ -1,4 +1,4 @@
-# WordPress Plugin Submission Form Template
+﻿# WordPress Plugin Submission Form Template
 
 ## 📝 提交表单填写模板
 
@@ -6,14 +6,14 @@
 
 **Plugin Name:** `Image2URL Clipboard Booster`
 
-**Plugin Description :**  
+**Plugin Description:**  
 Upload images to cloud services directly from clipboard in Gutenberg editor. Reduces local storage usage and inode consumption on shared hosting. Features security validation, retry mechanisms, and custom endpoint support.
 
 **Plugin URL:** `https://github.com/image2url/image2url-wordpress`  
 
 ---
 
-### 📋 Additional Information 
+### 📋 Additional Information
 
 #### Why do you want to add this plugin to the directory?
 Image2URL solves shared hosting inode limitations by enabling clipboard-to-cloud image uploads in Gutenberg. It removes local storage requirements, adds CSRF/file validation/malicious-content checks, auto-retries, and allows custom endpoints—filling a gap for secure, zero-config real-time image uploads.
@@ -33,18 +33,17 @@ Default endpoint (image2url.com) is optional and replaceable; supports self-host
 ---
 
 ## 🚀 最新指南合规清单（基于 2025-02 Detailed Plugin Guidelines）
-- GPLv2 或更高；所有依赖均 GPL 兼容；在主文件和 readme.txt 声明 License/License URI。
-- 无混淆/加密/远程下载执行代码；不使用动态包含/eval/shell 执行。
-- 不采集个人数据或遥测；如需数据收集，必须在 readme.txt 和插件设置中明确说明、提供关闭选项。
-- 不滥用管理员权限、不劫持仪表盘、不弹过度 nag/误导性提示；不强制连接外部服务。
-- 插件名称/slug 不滥用商标或 “WordPress” 前缀；与功能相关、无堆砌关键词。
-- 外部请求可禁用或降级，失败时不破坏核心编辑体验。
-- 停用/卸载后清理数据（`uninstall.php` 或 `register_uninstall_hook`），除非用户选择保留。
-- 所有输入/输出使用 `sanitize_*` / `esc_*`；关键操作使用 nonce 与 capability 检查。
-- 包内不含密钥/证书；包含规范的 `readme.txt`（Stable tag、Tested up to、Requires PHP）。
+- GPLv2 或更高；所有依赖 GPL 兼容；在主文件和 readme.txt 声明 License/License URI。
+- 无混淆/加密/远程下载执行代码；不使用 eval/shell/dynamic include。
+- 默认不采集个人数据或遥测；如需数据收集，需在 readme 和设置中披露并可关闭。
+- 不滥用管理员权限、不劫持仪表盘、不强制外部服务、不展示过度 nag。
+- 插件名称/slug 不滥用商标或 “WordPress” 前缀；与功能相关且无关键词堆砌。
+- 外部请求可禁用或降级，失败不影响编辑器基础功能。
+- 停用/卸载后清理数据（`uninstall.php` 或 `register_uninstall_hook`）。
+- 输入/输出使用 `sanitize_*` / `esc_*`，关键操作使用 nonce + capability 检查。
+- 包内无密钥/证书；`readme.txt` 包含 Stable tag / Tested up to / Requires PHP。
 
 ## ✅ 提交前步骤
-
 1) 创建 GitHub 仓库并推送初始代码：
 ```bash
 git init

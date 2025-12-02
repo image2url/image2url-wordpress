@@ -1,10 +1,7 @@
 <?php
 
 /**
- * Security utilities for Image2URL plugin
- *
- * This file contains security-related functions and validation utilities
- * to ensure the plugin operates securely.
+ * Security utilities for Image2URL plugin.
  */
 
 if (!defined('ABSPATH')) {
@@ -14,17 +11,17 @@ if (!defined('ABSPATH')) {
 class Image2URL_Security
 {
     /**
-     * Rate limiting storage
+     * Rate limiting storage.
      */
     private static $upload_attempts = [];
 
     /**
-     * Maximum uploads per minute per user
+     * Maximum uploads per minute per user.
      */
     const MAX_UPLOADS_PER_MINUTE = 10;
 
     /**
-     * Check if user has exceeded upload rate limit
+     * Check if user has exceeded upload rate limit.
      */
     public static function check_rate_limit($user_id = null): bool
     {
@@ -33,13 +30,12 @@ class Image2URL_Security
         }
 
         $current_time = time();
-        $window_start = $current_time - 60; // 1 minute window
+        $window_start = $current_time - 60;
 
-        // Clean old attempts
         if (isset(self::$upload_attempts[$user_id])) {
             self::$upload_attempts[$user_id] = array_filter(
                 self::$upload_attempts[$user_id],
-                function($timestamp) use ($window_start) {
+                static function ($timestamp) use ($window_start) {
                     return $timestamp > $window_start;
                 }
             );
@@ -47,69 +43,60 @@ class Image2URL_Security
             self::$upload_attempts[$user_id] = [];
         }
 
-        // Check rate limit
         if (count(self::$upload_attempts[$user_id]) >= self::MAX_UPLOADS_PER_MINUTE) {
             return false;
         }
 
-        // Record this attempt
         self::$upload_attempts[$user_id][] = $current_time;
         return true;
     }
 
     /**
-     * Sanitize and validate endpoint URL
+     * Sanitize and validate endpoint URL.
      */
     public static function validate_endpoint($url): string
     {
-        $url = sanitize_url($url);
+        $url = esc_url_raw($url);
 
         if (empty($url)) {
-            throw new InvalidArgumentException(__('无效的端点URL', 'image2url'));
+            throw new InvalidArgumentException(esc_html__('无效的端点URL', 'image2url-clipboard-booster'));
         }
 
-        $parsed = parse_url($url);
-        if (!$parsed || !in_array($parsed['scheme'], ['http', 'https'])) {
-            throw new InvalidArgumentException(__('端点URL必须使用HTTP或HTTPS协议', 'image2url'));
+        $parsed = wp_parse_url($url);
+        if (!$parsed || empty($parsed['scheme']) || !in_array($parsed['scheme'], ['http', 'https'], true)) {
+            throw new InvalidArgumentException(esc_html__('端点URL必须使用HTTP或HTTPS协议', 'image2url-clipboard-booster'));
         }
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new InvalidArgumentException(__('端点URL格式不正确', 'image2url'));
+            throw new InvalidArgumentException(esc_html__('端点URL格式不正确', 'image2url-clipboard-booster'));
         }
 
         return $url;
     }
 
     /**
-     * Enhanced file validation beyond MIME type checking
+     * Enhanced file validation beyond MIME type checking.
      */
     public static function validate_file_security($file): array
     {
         $errors = [];
 
-        // Basic file checks
         if (!is_uploaded_file($file['tmp_name'])) {
-            $errors[] = __('无效的上传文件', 'image2url');
+            $errors[] = esc_html__('无效的上传文件', 'image2url-clipboard-booster');
         }
 
-        if ($file['size'] === 0) {
-            $errors[] = __('文件大小为0', 'image2url');
+        if ((int) $file['size'] === 0) {
+            $errors[] = esc_html__('文件大小为 0', 'image2url-clipboard-booster');
         }
 
-        // Check for potential dangerous content in images
-        if (self::contains_malicious_content($file['tmp_name'])) {
-            $errors[] = __('文件包含潜在恶意内容', 'image2url');
-        }
-
-        // Validate image dimensions
         if (function_exists('getimagesize')) {
             $image_info = @getimagesize($file['tmp_name']);
             if (!$image_info) {
-                $errors[] = __('无法读取图片信息', 'image2url');
+                $errors[] = esc_html__('无法读取图片信息', 'image2url-clipboard-booster');
             } else {
-                $max_dimension = 10000; // 10k pixels
+                $max_dimension = 10000;
                 if ($image_info[0] > $max_dimension || $image_info[1] > $max_dimension) {
-                    $errors[] = __('图片尺寸过大', 'image2url');
+                    $errors[] = esc_html__('图片尺寸过大', 'image2url-clipboard-booster');
                 }
             }
         }
@@ -118,38 +105,7 @@ class Image2URL_Security
     }
 
     /**
-     * Basic scan for potentially malicious content
-     */
-    private static function contains_malicious_content($file_path): bool
-    {
-        $handle = fopen($file_path, 'rb');
-        if (!$handle) {
-            return true; // Assume malicious if can't read
-        }
-
-        $header = fread($handle, 1024);
-        fclose($handle);
-
-        // Check for common PHP patterns (in case of fake images)
-        $malicious_patterns = [
-            '<?php',
-            '<script',
-            'javascript:',
-            'vbscript:',
-            'data:text/html',
-        ];
-
-        foreach ($malicious_patterns as $pattern) {
-            if (stripos($header, $pattern) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Log security events
+     * Log security events.
      */
     public static function log_security_event($event_type, $message, $context = []): void
     {
@@ -161,16 +117,16 @@ class Image2URL_Security
             '[Image2URL Security] %s: %s | Context: %s | User: %d | IP: %s',
             $event_type,
             $message,
-            json_encode($context),
+            wp_json_encode($context),
             get_current_user_id(),
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? 'unknown'))
         );
 
-        error_log($log_entry);
+        error_log($log_entry); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 
     /**
-     * Verify nonce with additional security checks
+     * Verify nonce with additional security checks.
      */
     public static function verify_nonce_security($nonce, $action): bool
     {

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   if (typeof window.wp === 'undefined' || !window.wp.data) {
     return;
   }
@@ -21,9 +21,8 @@
 
   const noticeStore = dispatch('core/notices');
 
-  // Retry configuration
   const MAX_RETRIES = 3;
-  const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
+  const RETRY_DELAYS = [1000, 2000, 4000];
 
   async function uploadFileWithRetry(file, retryCount = 0) {
     const formData = new FormData();
@@ -42,10 +41,10 @@
 
       if (data.success && data.data && data.data.url) {
         return data.data.url;
-      } else {
-        const errorMsg = data.data?.message || __('上传失败', 'image2url');
-        throw new Error(errorMsg);
       }
+
+      const errorMsg = data.data?.message || __('上传失败', 'image2url-clipboard-booster');
+      throw new Error(errorMsg);
     } catch (error) {
       console.warn(`Upload attempt ${retryCount + 1} failed:`, error.message);
 
@@ -53,7 +52,7 @@
         const delay = RETRY_DELAYS[retryCount];
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        const retryMsg = __('上传失败，正在重试...', 'image2url') + ` (${retryCount + 2}/${MAX_RETRIES})`;
+        const retryMsg = __('上传失败，正在重试...', 'image2url-clipboard-booster') + ` (${retryCount + 2}/${MAX_RETRIES})`;
         noticeStore.createNotice('info', retryMsg, {
           isDismissible: false,
           id: `retry-${retryCount}`
@@ -71,10 +70,9 @@
       return false;
     }
 
-    // Additional client-side validation using file signature
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         const arr = new Uint8Array(e.target.result).subarray(0, 4);
         let header = '';
         for (let i = 0; i < arr.length; i++) {
@@ -110,20 +108,18 @@
 
     const file = files[0];
 
-    // File size validation
     if (file.size > maxBytes) {
-      const msg = __('图片过大，已阻止上传。请压缩后重试。', 'image2url') +
-                  ` (${(file.size / 1024 / 1024).toFixed(2)}MB > ${(maxBytes / 1024 / 1024).toFixed(2)}MB)`;
+      const msg = __('图片过大，已阻止上传。请压缩后重试。', 'image2url-clipboard-booster') +
+        ` (${(file.size / 1024 / 1024).toFixed(2)}MB > ${(maxBytes / 1024 / 1024).toFixed(2)}MB)`;
       noticeStore.createNotice('error', msg, { isDismissible: true });
       speak(msg);
       event.preventDefault();
       return;
     }
 
-    // File type validation
     const isValidType = await validateFileType(file);
     if (!isValidType) {
-      const msg = __('不支持的图片格式，请使用 JPG、PNG、GIF 或 WebP 格式。', 'image2url');
+      const msg = __('不支持的图片格式，请使用 JPG、PNG、GIF 或 WebP。', 'image2url-clipboard-booster');
       noticeStore.createNotice('error', msg, { isDismissible: true });
       speak(msg);
       event.preventDefault();
@@ -133,7 +129,7 @@
     event.preventDefault();
     event.stopPropagation();
 
-    const infoId = noticeStore.createNotice('info', __('正在上传图片...', 'image2url'), {
+    const infoId = noticeStore.createNotice('info', __('正在上传图片...', 'image2url-clipboard-booster'), {
       isDismissible: false,
       id: 'upload-progress'
     });
@@ -141,12 +137,10 @@
     try {
       const url = await uploadFileWithRetry(file);
 
-      // Remove retry notices if any
       for (let i = 0; i < MAX_RETRIES - 1; i++) {
         noticeStore.removeNotice(`retry-${i}`);
       }
 
-      // Create and insert image block
       const block = createBlock('core/image', {
         url,
         alt: file.name || 'image',
@@ -155,19 +149,18 @@
 
       dispatch('core/block-editor').insertBlocks(block);
 
-      const successMsg = __('上传成功，已插入外链图片。', 'image2url');
+      const successMsg = __('上传成功，已插入外链图片。', 'image2url-clipboard-booster');
       noticeStore.createNotice('success', successMsg, {
         isDismissible: true,
       });
       speak(successMsg);
 
     } catch (error) {
-      // Clean up any retry notices
       for (let i = 0; i < MAX_RETRIES - 1; i++) {
         noticeStore.removeNotice(`retry-${i}`);
       }
 
-      const message = error && error.message ? error.message : __('上传失败，请稍后重试。', 'image2url');
+      const message = error && error.message ? error.message : __('上传失败，请稍后重试。', 'image2url-clipboard-booster');
       noticeStore.createNotice('error', message, {
         isDismissible: true,
         id: 'upload-error'
@@ -180,15 +173,14 @@
     }
   }
 
-  // Rate limiting to prevent spam
   let lastUploadTime = 0;
-  const MIN_UPLOAD_INTERVAL = 2000; // 2 seconds
+  const MIN_UPLOAD_INTERVAL = 2000;
 
   async function rateLimitedHandlePaste(event) {
     const now = Date.now();
     if (now - lastUploadTime < MIN_UPLOAD_INTERVAL) {
       const remainingTime = Math.ceil((MIN_UPLOAD_INTERVAL - (now - lastUploadTime)) / 1000);
-      const msg = __('请稍后再试，等待', 'image2url') + ` ${remainingTime}s`;
+      const msg = __('请稍后再试，等待', 'image2url-clipboard-booster') + ` ${remainingTime}s`;
       noticeStore.createNotice('warning', msg, { isDismissible: true });
       return;
     }
@@ -197,10 +189,8 @@
     await handlePaste(event);
   }
 
-  // Add event listener
   document.addEventListener('paste', rateLimitedHandlePaste, true);
 
-  // Clean up on page unload
   window.addEventListener('beforeunload', () => {
     document.removeEventListener('paste', rateLimitedHandlePaste, true);
   });

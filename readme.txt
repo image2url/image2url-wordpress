@@ -1,8 +1,8 @@
 === Image2URL Clipboard Booster ===
 Contributors: image2url
-Tags: images, upload, clipboard, gutenberg, media, cloud, automation
+Tags: images, upload, clipboard, gutenberg, cloud
 Requires at least: 5.0
-Tested up to: 6.5
+Tested up to: 6.8
 Stable tag: 0.1.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT

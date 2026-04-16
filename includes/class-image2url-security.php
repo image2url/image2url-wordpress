@@ -11,17 +11,17 @@ if (!defined('ABSPATH')) {
 class Image2URL_Security
 {
     /**
-     * Rate limiting storage.
-     */
-    private static $upload_attempts = [];
-
-    /**
-     * Maximum uploads per minute per user.
+     * Maximum uploads per minute per user or IP.
      */
     const MAX_UPLOADS_PER_MINUTE = 10;
 
     /**
-     * Check if user has exceeded upload rate limit.
+     * The rolling time window used for rate limiting.
+     */
+    const RATE_LIMIT_WINDOW = 60;
+
+    /**
+     * Check if the current actor has exceeded the upload rate limit.
      */
     public static function check_rate_limit($user_id = null): bool
     {
@@ -29,25 +29,31 @@ class Image2URL_Security
             $user_id = get_current_user_id();
         }
 
+        $key = self::get_rate_limit_key($user_id);
         $current_time = time();
-        $window_start = $current_time - 60;
+        $window_start = $current_time - self::RATE_LIMIT_WINDOW;
 
-        if (isset(self::$upload_attempts[$user_id])) {
-            self::$upload_attempts[$user_id] = array_filter(
-                self::$upload_attempts[$user_id],
+        $attempts = get_transient($key);
+        if (!is_array($attempts)) {
+            $attempts = [];
+        }
+
+        $attempts = array_values(
+            array_filter(
+                array_map('intval', $attempts),
                 static function ($timestamp) use ($window_start) {
                     return $timestamp > $window_start;
                 }
-            );
-        } else {
-            self::$upload_attempts[$user_id] = [];
-        }
+            )
+        );
 
-        if (count(self::$upload_attempts[$user_id]) >= self::MAX_UPLOADS_PER_MINUTE) {
+        if (count($attempts) >= self::MAX_UPLOADS_PER_MINUTE) {
             return false;
         }
 
-        self::$upload_attempts[$user_id][] = $current_time;
+        $attempts[] = $current_time;
+        set_transient($key, $attempts, self::RATE_LIMIT_WINDOW);
+
         return true;
     }
 
@@ -56,19 +62,19 @@ class Image2URL_Security
      */
     public static function validate_endpoint($url): string
     {
-        $url = esc_url_raw($url);
+        $url = esc_url_raw(trim((string) $url));
 
         if (empty($url)) {
-            throw new InvalidArgumentException(esc_html__('无效的端点URL', 'image2url-clipboard-booster'));
+            throw new InvalidArgumentException(esc_html__('无效的端点 URL。', 'image2url-clipboard-booster'));
         }
 
         $parsed = wp_parse_url($url);
         if (!$parsed || empty($parsed['scheme']) || !in_array($parsed['scheme'], ['http', 'https'], true)) {
-            throw new InvalidArgumentException(esc_html__('端点URL必须使用HTTP或HTTPS协议', 'image2url-clipboard-booster'));
+            throw new InvalidArgumentException(esc_html__('端点 URL 必须使用 HTTP 或 HTTPS 协议。', 'image2url-clipboard-booster'));
         }
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new InvalidArgumentException(esc_html__('端点URL格式不正确', 'image2url-clipboard-booster'));
+            throw new InvalidArgumentException(esc_html__('端点 URL 格式不正确。', 'image2url-clipboard-booster'));
         }
 
         return $url;
@@ -81,22 +87,30 @@ class Image2URL_Security
     {
         $errors = [];
 
-        if (!is_uploaded_file($file['tmp_name'])) {
-            $errors[] = esc_html__('无效的上传文件', 'image2url-clipboard-booster');
+        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            $errors[] = esc_html__('无效的上传文件。', 'image2url-clipboard-booster');
+            return $errors;
         }
 
-        if ((int) $file['size'] === 0) {
-            $errors[] = esc_html__('文件大小为 0', 'image2url-clipboard-booster');
+        if ((int) ($file['size'] ?? 0) === 0) {
+            $errors[] = esc_html__('文件大小为 0。', 'image2url-clipboard-booster');
+        }
+
+        $header = file_get_contents($file['tmp_name'], false, null, 0, 512);
+        if (false === $header) {
+            $errors[] = esc_html__('无法读取上传文件。', 'image2url-clipboard-booster');
+        } elseif (preg_match('/<\?(php|=)|<script|eval\s*\(/i', $header)) {
+            $errors[] = esc_html__('检测到潜在危险内容。', 'image2url-clipboard-booster');
         }
 
         if (function_exists('getimagesize')) {
             $image_info = @getimagesize($file['tmp_name']);
             if (!$image_info) {
-                $errors[] = esc_html__('无法读取图片信息', 'image2url-clipboard-booster');
+                $errors[] = esc_html__('无法读取图片信息。', 'image2url-clipboard-booster');
             } else {
                 $max_dimension = 10000;
                 if ($image_info[0] > $max_dimension || $image_info[1] > $max_dimension) {
-                    $errors[] = esc_html__('图片尺寸过大', 'image2url-clipboard-booster');
+                    $errors[] = esc_html__('图片尺寸过大。', 'image2url-clipboard-booster');
                 }
             }
         }
@@ -136,9 +150,24 @@ class Image2URL_Security
                 'Invalid nonce verification attempt',
                 ['action' => $action]
             );
+
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Build a stable transient key for rate limiting.
+     */
+    private static function get_rate_limit_key($user_id): string
+    {
+        if (!empty($user_id)) {
+            return 'image2url_rate_limit_user_' . (int) $user_id;
+        }
+
+        $ip_address = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? 'guest'));
+
+        return 'image2url_rate_limit_ip_' . md5($ip_address);
     }
 }

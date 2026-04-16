@@ -8,13 +8,48 @@ class Image2URL_Plugin
 {
     private $option_key = 'image2url_settings';
 
+    private $migrations;
+
+    public function __construct()
+    {
+        $this->migrations = new Image2URL_Migrations();
+    }
+
+    public static function activate(): void
+    {
+        Image2URL_Migrations::activate();
+    }
+
+    public static function deactivate(): void
+    {
+        Image2URL_Migrations::deactivate();
+    }
+
     public function init(): void
     {
+        add_action('init', [$this, 'load_textdomain']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_menu', [$this, 'add_settings_page']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         add_action('enqueue_block_editor_assets', [$this, 'enqueue_editor_assets']);
         add_action('wp_ajax_image2url_upload', [$this, 'handle_ajax_upload']);
         add_action('wp_ajax_image2url_verify_endpoint', [$this, 'handle_verify_endpoint']);
+
+        add_filter(
+            'plugin_action_links_' . plugin_basename(IMAGE2URL_PLUGIN_FILE),
+            [$this, 'add_plugin_action_links']
+        );
+
+        $this->migrations->init();
+    }
+
+    public function load_textdomain(): void
+    {
+        load_plugin_textdomain(
+            'image2url-clipboard-booster',
+            false,
+            dirname(plugin_basename(IMAGE2URL_PLUGIN_FILE)) . '/languages'
+        );
     }
 
     public function defaults(): array
@@ -42,7 +77,10 @@ class Image2URL_Plugin
             'image2url_general',
             esc_html__('基础设置', 'image2url-clipboard-booster'),
             static function () {
-                echo '<p>' . esc_html__('配置上传端点与粘贴行为。默认直传 image2url，无需占用本地媒体库。', 'image2url-clipboard-booster') . '</p>';
+                echo '<p>' . esc_html__(
+                    '配置上传端点、体积限制和编辑器行为。默认直传 image2url，不占用本地媒体库。',
+                    'image2url-clipboard-booster'
+                ) . '</p>';
             },
             'image2url'
         );
@@ -75,16 +113,30 @@ class Image2URL_Plugin
     public function sanitize_settings($input): array
     {
         $defaults = $this->defaults();
+        $current = $this->get_options();
+
         if (!is_array($input)) {
-            return $defaults;
+            return $current;
         }
 
         $sanitized = [];
-        $sanitized['endpoint'] = isset($input['endpoint']) ? esc_url_raw(trim(wp_unslash($input['endpoint']))) : $defaults['endpoint'];
 
-        $size = isset($input['max_size_mb']) ? (float) $input['max_size_mb'] : $defaults['max_size_mb'];
-        $sanitized['max_size_mb'] = $size > 0 ? $size : $defaults['max_size_mb'];
+        try {
+            $sanitized['endpoint'] = isset($input['endpoint'])
+                ? Image2URL_Security::validate_endpoint(wp_unslash($input['endpoint']))
+                : $current['endpoint'];
+        } catch (\InvalidArgumentException $exception) {
+            $sanitized['endpoint'] = $current['endpoint'];
 
+            add_settings_error(
+                $this->option_key,
+                'image2url_invalid_endpoint',
+                $exception->getMessage()
+            );
+        }
+
+        $size = isset($input['max_size_mb']) ? (float) $input['max_size_mb'] : $current['max_size_mb'];
+        $sanitized['max_size_mb'] = min(20, max(0.1, $size > 0 ? $size : $defaults['max_size_mb']));
         $sanitized['enable_clipboard'] = !empty($input['enable_clipboard']) ? 1 : 0;
 
         return $sanitized;
@@ -103,10 +155,21 @@ class Image2URL_Plugin
 
     public function render_settings_page(): void
     {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $allowed_types = array_map(
+            static function ($mime) {
+                return strtoupper((string) preg_replace('/^image\//', '', $mime));
+            },
+            $this->get_allowed_mime_types()
+        );
         ?>
         <div class="wrap">
             <h1>Image2URL Clipboard Booster</h1>
-            <p><?php echo esc_html__('核心卖点：Gutenberg 粘贴图片即上云，返回外链，降低 inode 压力。', 'image2url-clipboard-booster'); ?></p>
+            <?php settings_errors($this->option_key); ?>
+            <p><?php echo esc_html__('核心卖点：在 Gutenberg 里直接粘贴图片并上传到远端，降低共享主机 inode 和媒体库维护成本。', 'image2url-clipboard-booster'); ?></p>
             <form action="options.php" method="post">
                 <?php
                 settings_fields('image2url_settings');
@@ -115,12 +178,14 @@ class Image2URL_Plugin
                 ?>
             </form>
             <hr>
-            <h2><?php echo esc_html__('使用建议', 'image2url-clipboard-booster'); ?></h2>
-            <ol>
-                <li><?php echo esc_html__('保持默认端点以获得免配置体验；如需私有化，可改为自建 API 地址。', 'image2url-clipboard-booster'); ?></li>
-                <li><?php echo esc_html__('如担心链接失效，可在后续版本启用本地+云端镜像（计划中）。', 'image2url-clipboard-booster'); ?></li>
-                <li><?php echo esc_html__('多人协作推荐统一端点并开启 CDN 自定义域，保证 SEO 友好。', 'image2url-clipboard-booster'); ?></li>
-            </ol>
+            <h2><?php echo esc_html__('运营建议', 'image2url-clipboard-booster'); ?></h2>
+            <ul style="list-style: disc; padding-left: 1.25rem;">
+                <li><?php echo esc_html__('保存设置前先验证端点，确保当前主机可以连通目标服务。', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('建议给图片服务绑定自定义域，提升品牌一致性并降低外链感知。', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('当前默认支持 JPEG、PNG、GIF、WebP。SVG 建议交给单独的安全管线处理。', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('如需把文章中的外链图片回退到本地媒体库，请前往 工具 -> Image2URL Migration。', 'image2url-clipboard-booster'); ?></li>
+            </ul>
+            <p><strong><?php echo esc_html__('支持格式：', 'image2url-clipboard-booster'); ?></strong><?php echo esc_html(implode(', ', $allowed_types)); ?></p>
         </div>
         <?php
     }
@@ -129,8 +194,20 @@ class Image2URL_Plugin
     {
         $options = $this->get_options();
         ?>
-        <input type="url" name="<?php echo esc_attr($this->option_key); ?>[endpoint]" value="<?php echo esc_attr($options['endpoint']); ?>" class="regular-text" />
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input
+                type="url"
+                name="<?php echo esc_attr($this->option_key); ?>[endpoint]"
+                value="<?php echo esc_attr($options['endpoint']); ?>"
+                class="regular-text"
+                data-image2url-endpoint-field="true"
+            />
+            <button type="button" class="button" data-image2url-verify-endpoint="true">
+                <?php echo esc_html__('验证端点', 'image2url-clipboard-booster'); ?>
+            </button>
+        </div>
         <p class="description"><?php echo esc_html__('默认 https://www.image2url.com/api/upload，可替换为自建端点或自定义域。', 'image2url-clipboard-booster'); ?></p>
+        <p class="description" data-image2url-endpoint-status="true" aria-live="polite"></p>
         <?php
     }
 
@@ -138,8 +215,15 @@ class Image2URL_Plugin
     {
         $options = $this->get_options();
         ?>
-        <input type="number" step="0.1" min="0.1" name="<?php echo esc_attr($this->option_key); ?>[max_size_mb]" value="<?php echo esc_attr($options['max_size_mb']); ?>" />
-        <p class="description"><?php echo esc_html__('超过此体积将在本地阻断，默认 2MB 对齐官方限制。', 'image2url-clipboard-booster'); ?></p>
+        <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="20"
+            name="<?php echo esc_attr($this->option_key); ?>[max_size_mb]"
+            value="<?php echo esc_attr($options['max_size_mb']); ?>"
+        />
+        <p class="description"><?php echo esc_html__('超过此体积将在本地阻断。建议与远端服务的单文件限制保持一致。', 'image2url-clipboard-booster'); ?></p>
         <?php
     }
 
@@ -151,15 +235,36 @@ class Image2URL_Plugin
             <input type="checkbox" name="<?php echo esc_attr($this->option_key); ?>[enable_clipboard]" value="1" <?php checked($options['enable_clipboard'], 1); ?> />
             <?php echo esc_html__('启用 Gutenberg 粘贴图片自动上云', 'image2url-clipboard-booster'); ?>
         </label>
-        <p class="description"><?php echo esc_html__('拦截剪贴板里的图片文件，自动上传并插入外链，不占用媒体库。', 'image2url-clipboard-booster'); ?></p>
+        <p class="description"><?php echo esc_html__('拦截剪贴板中的图片文件，上传后直接插入外链图片块，不进入媒体库。', 'image2url-clipboard-booster'); ?></p>
         <?php
     }
 
-    private function get_options(): array
+    public function enqueue_admin_assets(string $hook): void
     {
-        return wp_parse_args(
-            get_option($this->option_key, []),
-            $this->defaults()
+        if ('settings_page_image2url' !== $hook) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'image2url-admin',
+            IMAGE2URL_PLUGIN_URL . 'assets/js/admin-settings.js',
+            [],
+            IMAGE2URL_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'image2url-admin',
+            'image2urlAdmin',
+            [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('image2url_verify_endpoint'),
+                'messages' => [
+                    'checking' => esc_html__('正在检测端点连通性...', 'image2url-clipboard-booster'),
+                    'invalid' => esc_html__('请输入有效的端点 URL。', 'image2url-clipboard-booster'),
+                    'networkError' => esc_html__('端点检测失败，请检查网络或目标服务配置。', 'image2url-clipboard-booster'),
+                ],
+            ]
         );
     }
 
@@ -179,7 +284,6 @@ class Image2URL_Plugin
         );
 
         $config = [
-            'endpoint' => $options['endpoint'],
             'maxBytes' => (int) ($options['max_size_mb'] * 1024 * 1024),
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('image2url_upload'),
@@ -189,15 +293,36 @@ class Image2URL_Plugin
         wp_localize_script('image2url-editor', 'image2urlConfig', $config);
     }
 
+    public function add_plugin_action_links(array $links): array
+    {
+        $settings_link = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url(admin_url('options-general.php?page=image2url')),
+            esc_html__('Settings', 'image2url-clipboard-booster')
+        );
+        $migration_link = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url(admin_url('tools.php?page=image2url-migration')),
+            esc_html__('Migration', 'image2url-clipboard-booster')
+        );
+
+        array_unshift($links, $settings_link);
+        array_unshift($links, $migration_link);
+
+        return $links;
+    }
+
     public function get_allowed_mime_types(): array
     {
-        return [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'image/svg+xml',
-        ];
+        return apply_filters(
+            'image2url_allowed_mime_types',
+            [
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'image/webp',
+            ]
+        );
     }
 
     public function validate_file_type($file): bool
@@ -212,14 +337,18 @@ class Image2URL_Plugin
         }
 
         $mime = wp_get_image_mime($file['tmp_name']);
-        return $mime && in_array($mime, $this->get_allowed_mime_types(), true);
+        if (!$mime) {
+            $mime = $check['type'];
+        }
+
+        return in_array($mime, $this->get_allowed_mime_types(), true);
     }
 
     public function handle_ajax_upload(): void
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!Image2URL_Security::verify_nonce_security($nonce, 'image2url_upload')) {
-            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')]);
+            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
         }
 
         if (!current_user_can('upload_files')) {
@@ -227,7 +356,8 @@ class Image2URL_Plugin
                 'PERMISSION_DENIED',
                 'User without upload_files permission attempted upload'
             );
-            wp_die(esc_html__('您没有权限上传文件。', 'image2url-clipboard-booster'));
+
+            wp_send_json_error(['message' => esc_html__('您没有权限上传文件。', 'image2url-clipboard-booster')], 403);
         }
 
         if (!Image2URL_Security::check_rate_limit()) {
@@ -235,7 +365,8 @@ class Image2URL_Plugin
                 'RATE_LIMIT_EXCEEDED',
                 'User exceeded upload rate limit'
             );
-            wp_send_json_error(['message' => esc_html__('上传过于频繁，请稍后再试。', 'image2url-clipboard-booster')]);
+
+            wp_send_json_error(['message' => esc_html__('上传过于频繁，请稍后再试。', 'image2url-clipboard-booster')], 429);
         }
 
         if (
@@ -244,11 +375,10 @@ class Image2URL_Plugin
             !isset($_FILES['file']['error'], $_FILES['file']['tmp_name'], $_FILES['file']['name'], $_FILES['file']['type'], $_FILES['file']['size']) ||
             (int) $_FILES['file']['error'] !== UPLOAD_ERR_OK
         ) {
-            wp_send_json_error(['message' => esc_html__('文件上传失败。', 'image2url-clipboard-booster')]);
+            wp_send_json_error(['message' => esc_html__('文件上传失败。', 'image2url-clipboard-booster')], 400);
         }
 
         $file = $_FILES['file'];
-
         $security_errors = Image2URL_Security::validate_file_security($file);
         if (!empty($security_errors)) {
             Image2URL_Security::log_security_event(
@@ -256,7 +386,8 @@ class Image2URL_Plugin
                 'File failed security validation',
                 ['errors' => $security_errors, 'filename' => $file['name']]
             );
-            wp_send_json_error(['message' => implode(' ', $security_errors)]);
+
+            wp_send_json_error(['message' => implode(' ', $security_errors)], 400);
         }
 
         if (!$this->validate_file_type($file)) {
@@ -265,69 +396,324 @@ class Image2URL_Plugin
                 'Invalid file type detected',
                 ['filename' => $file['name'], 'type' => $file['type']]
             );
-            wp_send_json_error(['message' => esc_html__('不支持的文件类型。', 'image2url-clipboard-booster')]);
+
+            wp_send_json_error(['message' => esc_html__('不支持的文件类型。', 'image2url-clipboard-booster')], 400);
         }
 
         $options = $this->get_options();
         $max_bytes = (int) ($options['max_size_mb'] * 1024 * 1024);
-        if ($file['size'] > $max_bytes) {
-            wp_send_json_error(['message' => esc_html__('文件过大。', 'image2url-clipboard-booster')]);
+        if ((int) $file['size'] > $max_bytes) {
+            wp_send_json_error(['message' => esc_html__('文件过大。', 'image2url-clipboard-booster')], 400);
         }
 
         $this->upload_to_external_service($file);
     }
 
-    private function upload_to_external_service($file): void
+    private function get_options(): array
+    {
+        return wp_parse_args(
+            get_option($this->option_key, []),
+            $this->defaults()
+        );
+    }
+
+    private function upload_to_external_service(array $file): void
     {
         $options = $this->get_options();
-        $endpoint = $options['endpoint'];
+        $post_id = $this->get_request_post_id();
 
-        $file_upload = class_exists('CURLFile')
-            ? new CURLFile($file['tmp_name'], $file['type'], $file['name'])
-            : '@' . $file['tmp_name'];
+        try {
+            $endpoint = Image2URL_Security::validate_endpoint($options['endpoint']);
+        } catch (\InvalidArgumentException $exception) {
+            wp_send_json_error(['message' => $exception->getMessage()], 400);
+        }
 
-        $response = wp_remote_post(
+        $response = $this->send_external_upload_request($endpoint, $file);
+        if (is_wp_error($response)) {
+            Image2URL_Security::log_security_event(
+                'REMOTE_UPLOAD_FAILED',
+                'External upload transport failed',
+                ['message' => $response->get_error_message()]
+            );
+
+            wp_send_json_error(
+                ['message' => esc_html__('上传请求失败：', 'image2url-clipboard-booster') . $response->get_error_message()],
+                502
+            );
+        }
+
+        $http_code = (int) wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+
+        if ($http_code < 200 || $http_code >= 300) {
+            wp_send_json_error(
+                ['message' => sprintf(
+                    /* translators: %d is the remote HTTP status code. */
+                    esc_html__('上传失败，远端服务返回 HTTP %d。', 'image2url-clipboard-booster'),
+                    $http_code
+                )],
+                502
+            );
+        }
+
+        $data = json_decode($body, true);
+        if (!is_array($data)) {
+            wp_send_json_error(['message' => esc_html__('上传服务返回了无效 JSON。', 'image2url-clipboard-booster')], 502);
+        }
+
+        $remote_url = $this->extract_remote_url($data);
+        if (!$remote_url) {
+            wp_send_json_error(['message' => esc_html__('上传服务响应中缺少图片 URL。', 'image2url-clipboard-booster')], 502);
+        }
+
+        $this->track_uploaded_remote_image($post_id, $remote_url);
+
+        wp_send_json_success(
+            [
+                'url' => esc_url_raw($remote_url),
+                'filename' => sanitize_file_name($file['name']),
+            ]
+        );
+    }
+
+    private function send_external_upload_request(string $endpoint, array $file)
+    {
+        if (function_exists('curl_init') && class_exists('CURLFile')) {
+            return $this->upload_via_curl($endpoint, $file);
+        }
+
+        return $this->upload_via_wp_http($endpoint, $file);
+    }
+
+    private function upload_via_curl(string $endpoint, array $file)
+    {
+        $handle = curl_init($endpoint);
+        if (false === $handle) {
+            return new WP_Error('image2url_curl_init_failed', esc_html__('无法初始化 cURL 上传。', 'image2url-clipboard-booster'));
+        }
+
+        $payload = [
+            'file' => new CURLFile($file['tmp_name'], $file['type'], $file['name']),
+        ];
+
+        curl_setopt_array(
+            $handle,
+            [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_USERAGENT => 'Image2URL-WordPress/' . IMAGE2URL_VERSION,
+                CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            ]
+        );
+
+        $body = curl_exec($handle);
+        $status_code = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $error_message = curl_error($handle);
+        curl_close($handle);
+
+        if (false === $body) {
+            return new WP_Error(
+                'image2url_curl_failed',
+                $error_message ?: esc_html__('cURL 上传失败。', 'image2url-clipboard-booster')
+            );
+        }
+
+        return [
+            'response' => [
+                'code' => $status_code,
+            ],
+            'body' => $body,
+        ];
+    }
+
+    private function upload_via_wp_http(string $endpoint, array $file)
+    {
+        $multipart = $this->build_multipart_payload($file);
+        if (is_wp_error($multipart)) {
+            return $multipart;
+        }
+
+        return wp_safe_remote_post(
             $endpoint,
             [
                 'timeout' => 30,
                 'user-agent' => 'Image2URL-WordPress/' . IMAGE2URL_VERSION,
                 'sslverify' => true,
-                'body' => [
-                    'file' => $file_upload,
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'multipart/form-data; boundary=' . $multipart['boundary'],
                 ],
+                'body' => $multipart['body'],
+                'data_format' => 'body',
             ]
         );
+    }
 
-        if (is_wp_error($response)) {
-            wp_send_json_error(['message' => esc_html__('上传请求失败：', 'image2url-clipboard-booster') . $response->get_error_message()]);
+    private function build_multipart_payload(array $file)
+    {
+        $file_contents = file_get_contents($file['tmp_name']);
+        if (false === $file_contents) {
+            return new WP_Error('image2url_read_failed', esc_html__('无法读取待上传文件。', 'image2url-clipboard-booster'));
         }
 
-        $http_code = wp_remote_retrieve_response_code($response);
-        if ((int) $http_code !== 200) {
-            wp_send_json_error(['message' => esc_html__('上传失败，HTTP状态码：', 'image2url-clipboard-booster') . $http_code]);
+        $boundary = 'image2url-' . wp_generate_password(12, false, false);
+        $eol = "\r\n";
+        $filename = str_replace(['"', "\r", "\n"], '', sanitize_file_name($file['name']));
+
+        $body = '--' . $boundary . $eol;
+        $body .= 'Content-Disposition: form-data; name="file"; filename="' . $filename . '"' . $eol;
+        $body .= 'Content-Type: ' . $file['type'] . $eol . $eol;
+        $body .= $file_contents . $eol;
+        $body .= '--' . $boundary . '--' . $eol;
+
+        return [
+            'boundary' => $boundary,
+            'body' => $body,
+        ];
+    }
+
+    private function extract_remote_url(array $data): string
+    {
+        $paths = [
+            ['url'],
+            ['data', 'url'],
+            ['result', 'url'],
+            ['image', 'url'],
+            ['secure_url'],
+        ];
+
+        foreach ($paths as $path) {
+            $value = $data;
+
+            foreach ($path as $segment) {
+                if (!is_array($value) || !array_key_exists($segment, $value)) {
+                    $value = null;
+                    break;
+                }
+
+                $value = $value[$segment];
+            }
+
+            if (is_string($value) && filter_var($value, FILTER_VALIDATE_URL)) {
+                return $value;
+            }
         }
 
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-        if (!$data || !isset($data['url'])) {
-            wp_send_json_error(['message' => esc_html__('上传服务返回无效响应。', 'image2url-clipboard-booster')]);
+        return '';
+    }
+
+    private function get_request_post_id(): int
+    {
+        $post_id = isset($_POST['postId']) ? absint(wp_unslash($_POST['postId'])) : 0;
+
+        if ($post_id > 0 && !current_user_can('edit_post', $post_id)) {
+            return 0;
         }
 
-        wp_send_json_success([
-            'url' => esc_url_raw($data['url']),
-            'filename' => sanitize_file_name($file['name']),
-        ]);
+        return $post_id;
+    }
+
+    private function track_uploaded_remote_image(int $post_id, string $remote_url): void
+    {
+        if (!$remote_url) {
+            return;
+        }
+
+        $this->migrations->track_remote_image($post_id, $remote_url);
     }
 
     public function handle_verify_endpoint(): void
     {
-        check_ajax_referer('image2url_upload', 'nonce');
-
-        $endpoint = isset($_POST['endpoint']) ? esc_url_raw(wp_unslash($_POST['endpoint'])) : '';
-        if (!$endpoint || !filter_var($endpoint, FILTER_VALIDATE_URL)) {
-            wp_send_json_error(['message' => esc_html__('无效的端点URL。', 'image2url-clipboard-booster')]);
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!Image2URL_Security::verify_nonce_security($nonce, 'image2url_verify_endpoint')) {
+            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
         }
 
-        wp_send_json_success(['message' => esc_html__('端点验证通过。', 'image2url-clipboard-booster')]);
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => esc_html__('您没有权限执行该操作。', 'image2url-clipboard-booster')], 403);
+        }
+
+        try {
+            $endpoint = isset($_POST['endpoint'])
+                ? Image2URL_Security::validate_endpoint(wp_unslash($_POST['endpoint']))
+                : '';
+        } catch (\InvalidArgumentException $exception) {
+            wp_send_json_error(['message' => $exception->getMessage()], 400);
+        }
+
+        $result = $this->check_endpoint_reachability($endpoint);
+        if (!$result['success']) {
+            wp_send_json_error(
+                [
+                    'message' => $result['message'],
+                    'statusCode' => $result['statusCode'],
+                ],
+                502
+            );
+        }
+
+        wp_send_json_success(
+            [
+                'message' => $result['message'],
+                'statusCode' => $result['statusCode'],
+            ]
+        );
+    }
+
+    private function check_endpoint_reachability(string $endpoint): array
+    {
+        $request_args = [
+            'timeout' => 10,
+            'redirection' => 3,
+            'sslverify' => true,
+            'user-agent' => 'Image2URL-WordPress/' . IMAGE2URL_VERSION,
+        ];
+
+        $response = wp_safe_remote_request(
+            $endpoint,
+            array_merge($request_args, ['method' => 'HEAD'])
+        );
+
+        if (!is_wp_error($response)) {
+            $status_code = (int) wp_remote_retrieve_response_code($response);
+
+            if (405 === $status_code || 501 === $status_code) {
+                $response = wp_safe_remote_get($endpoint, $request_args);
+            }
+        }
+
+        if (is_wp_error($response)) {
+            return [
+                'success' => false,
+                'statusCode' => 0,
+                'message' => esc_html__('无法连通该端点：', 'image2url-clipboard-booster') . $response->get_error_message(),
+            ];
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code($response);
+        if ($status_code >= 200 && $status_code < 500) {
+            return [
+                'success' => true,
+                'statusCode' => $status_code,
+                'message' => sprintf(
+                    /* translators: %d is the remote HTTP status code. */
+                    esc_html__('端点可达，最近一次探测返回 HTTP %d。', 'image2url-clipboard-booster'),
+                    $status_code
+                ),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'statusCode' => $status_code,
+            'message' => sprintf(
+                /* translators: %d is the remote HTTP status code. */
+                esc_html__('端点返回异常状态：HTTP %d。', 'image2url-clipboard-booster'),
+                $status_code
+            ),
+        ];
     }
 }

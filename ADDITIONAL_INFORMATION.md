@@ -42,17 +42,22 @@ This plugin fills a gap in the WordPress ecosystem by providing a specialized so
 
 ## Similar Plugins Analysis
 
-### **Direct Competitors: None**
-Currently, there are no plugins in the WordPress.org repository that specifically address clipboard-to-cloud image uploads for Gutenberg.
+### **Adjacent Competitors Exist**
+There are adjacent plugins in the WordPress.org repository that validate the demand from different angles:
+
+- **The Paste**: validates clipboard/paste-based media workflow demand
+- **Cloudinary**: validates willingness to adopt cloud-hosted media and CDN workflows
+- **Sirv**: validates the image-hosting + WordPress integration category
+- **External image localization plugins**: validate the need to manage off-site image URLs
 
 ### **Related Functionality Plugins**
 
 | Plugin | Similar Features | Key Differences |
 |--------|------------------|-----------------|
-| **Add From Server** | Bulk import existing files | Works with existing files, not real-time uploads |
-| **External Media** | Use external media libraries | Complex setup, requires external service configuration |
-| **Media from FTP** | Import from FTP servers | Technical knowledge required, manual process |
-| **File Away** | Advanced file management | Focus on organization, not uploads |
+| **The Paste** | Clipboard/paste image workflow | Uploads into local media library; not designed around cloud-only storage |
+| **Cloudinary** | Cloud-hosted media delivery and transformations | Broader DAM/CDN scope; less focused on clipboard-first publishing |
+| **Sirv** | External image hosting and optimization | Focused on CDN/media optimization rather than paste-first authoring |
+| **Smart Auto Upload Images** | External image handling | Focused on importing/replacing remote images, not direct clipboard uploads |
 
 ### **Our Differentiation**
 
@@ -97,9 +102,9 @@ Image2URL Clipboard Booster is built entirely on WordPress core APIs:
 
 ## Commercial Affiliations and Business Model
 
-### **Open Source Project**
+### **Open Source Plugin with Optional Service Integration**
 
-Image2URL Clipboard Booster is completely open source under the MIT license with **no commercial affiliations**.
+Image2URL Clipboard Booster is open source. The plugin ships with a default endpoint for convenience, but site owners can replace that endpoint with their own compatible service.
 
 ### **Default Service Provider**
 
@@ -107,9 +112,8 @@ The plugin defaults to `image2url.com` as the upload service provider for user c
 
 **User Benefits:**
 - **Zero Configuration**: Works immediately upon activation
-- **Free Usage**: No registration or payment required for basic use
-- **High Reliability**: Professional-grade service with 99.9% uptime
-- **Fast Processing**: Optimized infrastructure for rapid uploads
+- **Fast Time to First Value**: Suitable for immediate testing after activation
+- **Replaceable Endpoint**: Can be swapped for a private or branded endpoint at any time
 
 **User Freedom:**
 - **Custom Endpoints**: Users can replace the default endpoint with any compatible service
@@ -132,7 +136,7 @@ The plugin defaults to `image2url.com` as the upload service provider for user c
 
 1. **CSRF Protection**: All AJAX requests use WordPress nonce verification
 2. **File Type Validation**: Dual validation using MIME type and file signature checking
-3. **Malicious Content Scanning**: Scans uploaded files for dangerous code patterns
+3. **Malicious Content Scanning**: Scans uploaded file headers for dangerous code patterns
 4. **Rate Limiting**: Prevents abuse with configurable upload rate limits
 5. **User Permission Checking**: Verifies appropriate WordPress capabilities
 6. **Security Logging**: Comprehensive audit trail for security events
@@ -142,7 +146,7 @@ The plugin defaults to `image2url.com` as the upload service provider for user c
 1. **Retry Mechanism**: Automatic retry with exponential backoff (3 attempts)
 2. **File Size Validation**: Client-side size checking to prevent unnecessary uploads
 3. **Asynchronous Processing**: Non-blocking uploads with user feedback
-4. **Memory Efficient**: Streaming uploads without loading entire files into memory
+4. **Transport Fallbacks**: Uses cURL when available and falls back to WordPress HTTP transport
 5. **Browser Compatibility**: Supports all modern browsers with fallbacks for older versions
 
 ### **User Experience Features**
@@ -159,7 +163,7 @@ The plugin defaults to `image2url.com` as the upload service provider for user c
 
 ### **WordPress Compatibility**
 
-- **WordPress Version**: Tested on WordPress 5.0 through 6.5
+- **WordPress Version**: Tested on WordPress 5.0 through 6.9.4
 - **PHP Requirements**: PHP 7.4+ (WordPress minimum requirements)
 - **PHP Extensions**: Required: `fileinfo`, `curl`; Optional: `gd`, `imagick`
 - **Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)

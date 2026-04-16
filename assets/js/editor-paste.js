@@ -160,7 +160,7 @@
       }
 
       if (!response.ok || !data?.success || !data?.data?.url) {
-        const errorMessage = data?.data?.message || __('上传失败，请稍后重试。', 'image2url-clipboard-booster');
+        const errorMessage = data?.data?.message || __('Upload failed. Please try again.', 'image2url-clipboard-booster');
         throw new Error(errorMessage);
       }
 
@@ -170,7 +170,7 @@
         const delay = RETRY_DELAYS[retryCount];
         setNotice(
           'info',
-          __('上传失败，正在重试...', 'image2url-clipboard-booster') + ` (${retryCount + 2}/${MAX_RETRIES})`,
+          __('Upload failed. Retrying...', 'image2url-clipboard-booster') + ` (${retryCount + 2}/${MAX_RETRIES})`,
           {
             id: NOTICE_IDS.retry,
             isDismissible: false,
@@ -204,7 +204,7 @@
     for (const file of files) {
       if (file.size > maxBytes) {
         errors.push(
-          __('图片过大，已跳过：', 'image2url-clipboard-booster') +
+          __('Image skipped because it is too large: ', 'image2url-clipboard-booster') +
           `${file.name} (${formatMb(file.size)}MB > ${formatMb(maxBytes)}MB)`
         );
         continue;
@@ -213,7 +213,7 @@
       const isValid = await validateFileSignature(file);
       if (!isValid) {
         errors.push(
-          __('不支持的图片格式，已跳过：', 'image2url-clipboard-booster') + file.name
+          __('Unsupported image type skipped: ', 'image2url-clipboard-booster') + file.name
         );
         continue;
       }
@@ -266,7 +266,7 @@
 
       setNotice(
         'info',
-        __('正在上传图片...', 'image2url-clipboard-booster') + ` ${index + 1}/${validFiles.length}`,
+        __('Uploading image...', 'image2url-clipboard-booster') + ` ${index + 1}/${validFiles.length}`,
         {
           id: NOTICE_IDS.progress,
           isDismissible: false,
@@ -279,7 +279,7 @@
       } catch (error) {
         failedFiles.push({
           name: file.name,
-          message: error?.message || __('上传失败，请稍后重试。', 'image2url-clipboard-booster'),
+          message: error?.message || __('Upload failed. Please try again.', 'image2url-clipboard-booster'),
         });
       }
     }
@@ -293,8 +293,8 @@
 
     if (uploadedBlocks.length && !failedFiles.length) {
       const successMessage = validFiles.length > 1
-        ? __('上传成功，已插入外链图片。共处理', 'image2url-clipboard-booster') + ` ${uploadedBlocks.length} ` + __('张。', 'image2url-clipboard-booster')
-        : __('上传成功，已插入外链图片。', 'image2url-clipboard-booster');
+        ? __('Upload complete. Inserted remote images:', 'image2url-clipboard-booster') + ` ${uploadedBlocks.length}.`
+        : __('Upload complete. The remote image was inserted.', 'image2url-clipboard-booster');
 
       setNotice('success', successMessage, { id: NOTICE_IDS.result });
       speak(successMessage);
@@ -303,9 +303,9 @@
 
     if (uploadedBlocks.length && failedFiles.length) {
       const partialMessage =
-        __('部分上传成功：', 'image2url-clipboard-booster') +
+        __('Partial success: ', 'image2url-clipboard-booster') +
         `${uploadedBlocks.length}/${validFiles.length}` +
-        __('，失败文件：', 'image2url-clipboard-booster') +
+        __(', failed files: ', 'image2url-clipboard-booster') +
         failedFiles.map((item) => item.name).join(', ');
 
       setNotice('warning', partialMessage, { id: NOTICE_IDS.result });
@@ -338,7 +338,7 @@
       const remainingTime = Math.ceil((MIN_UPLOAD_INTERVAL - (now - lastUploadTime)) / 1000);
       setNotice(
         'warning',
-        __('请稍后再试，等待', 'image2url-clipboard-booster') + ` ${remainingTime}s`,
+        __('Please wait before trying again. Time remaining:', 'image2url-clipboard-booster') + ` ${remainingTime}s`,
         { id: NOTICE_IDS.result }
       );
       return;

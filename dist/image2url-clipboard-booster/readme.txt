@@ -1,202 +1,124 @@
 === Image2URL Clipboard Booster ===
 Contributors: image2url
-Tags: images, upload, clipboard, gutenberg, cloud
+Tags: images, upload, clipboard, gutenberg, external media
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 6.9.4
-Stable tag: 0.12.1
+Stable tag: 0.12.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-让 Gutenberg 粘贴图片即上云，自动返回可长期访问的外链，减少站点 inode 占用。支持自定义上传端点与体积限制。
+Upload pasted images from the block editor to a remote image host and insert the returned URL without storing the file in the local media library.
 
 == Description ==
 
-Image2URL Clipboard Booster 是一个专为 WordPress 设计的图片上传插件，解决共享主机 inode 限制问题。
+Image2URL Clipboard Booster lets editors paste screenshots or image files directly into the block editor and send them to a remote image hosting endpoint instead of the local Media Library.
 
-**核心功能：**
-* 剪贴板直传：在 Gutenberg 编辑器中粘贴图片，自动上传到云端并插入外链
-* 多图顺序上传：一次粘贴多张图片时会顺序处理并批量插入
-* 端点可配置：支持自建 API 或自定义域名，并提供后台连通性校验
-* 本地回退工具：支持扫描文章中的外链图片并回退到 WordPress 媒体库
-* 后台批量任务：批量回退和批量验证都会进入后台队列，由 WP-Cron 按批次执行并展示进度
-* 区块与特色图同步：回退时会补齐 core/image、core/cover、core/media-text 区块的本地附件引用，并可自动设置正文首图为特色图
-* 回退结果验证：可直接检查单篇文章的残留外链、块附件绑定和特色图状态
-* 批量验证队列：支持指定文章或当前可访问的全部已发布文章做后台审计
-* 验证报告导出：批量验证结果可在后台预览，并导出为 CSV 明细
-* 问题类型聚合：验证报告支持按结果状态和问题类型聚合、筛选
-* 多维审计筛选：支持按严重度和文章类型继续切分验证结果
-* 体积限制：本地预检查，避免超大文件上传
-* 无侵入部署：启用即用，停用恢复默认行为
+Main features:
 
-**适用场景：**
-* 共享主机 inode 限制严重的站点
-* 需要减少本地媒体库占用的用户
-* 追求高效图片上传体验的编辑者
+* Clipboard upload for pasted images in the block editor
+* Sequential handling for multi-image paste actions
+* Configurable upload endpoint with an admin-side reachability check
+* Optional migration tools to bring previously inserted remote images back into the local Media Library
+* Background rollback and validation jobs powered by WP-Cron
+* Validation reports with filters, summaries, and CSV export
+* File type validation, size limits, nonce checks, and rate limiting
 
-**安全特性：**
-* CSRF 攻击防护
-* 文件类型签名验证
-* 恶意内容扫描
-* 速率限制保护
+Typical use cases:
 
-**第三方服务：**
-* 本插件在你粘贴图片时，会把图片文件发送到你配置的远端上传端点
-* 默认端点为 `https://www.image2url.com/api/upload`
-* 默认服务主页：https://www.image2url.com/
-* 默认服务条款：https://www.image2url.com/en-IN/terms
-* 默认服务隐私政策：https://www.image2url.com/en-IN/privacy
-* 发送时机：在 Gutenberg 中粘贴图片并触发上传时；管理员点击“验证端点”时会对配置的端点发起一次连通性探测
-* 默认服务可能接收图片文件本身，以及请求附带的文件名、MIME 类型、文件大小等上传元数据；和任何标准 HTTPS 请求一样，远端服务及其基础设施也可能看到你站点服务器的 IP、User-Agent 和时间戳等网络层信息
-* 站点管理员可在设置页把默认端点替换为自己的 HTTPS 上传服务
+* Shared hosting environments with strict inode limits
+* Editorial workflows that do not want every pasted image stored locally
+* Sites that want remote-hosted editor images but still need a rollback path later
+
+External service disclosure:
+
+* This plugin sends uploaded image files to the remote upload endpoint configured in the plugin settings.
+* The default endpoint is `https://www.image2url.com/api/upload`.
+* The default service homepage is `https://www.image2url.com/`.
+* The default service Terms of Service are available at `https://www.image2url.com/en-IN/terms`.
+* The default service Privacy Policy is available at `https://www.image2url.com/en-IN/privacy`.
+* Requests are made when an editor pastes an image into the block editor and when an administrator runs the endpoint verification action.
+* Depending on the configured service, the remote service may receive the image binary itself plus upload metadata such as filename, MIME type, file size, request timestamp, user agent, and the server IP that performs the request.
+* Site owners can replace the default endpoint with their own public HTTPS upload service.
 
 == Installation ==
 
-1. 下载插件压缩包
-2. 在 WordPress 后台进入 "插件" -> "安装插件" -> "上传插件"
-3. 选择下载的 zip 文件并安装
-4. 启用插件
-5. 在 "设置" -> "Image2URL" 中进行配置
+1. Upload the plugin zip in `Plugins > Add New > Upload Plugin`.
+2. Activate the plugin.
+3. Go to `Settings > Image2URL`.
+4. Review the default endpoint or replace it with your own public HTTPS upload endpoint.
+5. Save the settings and verify the endpoint before using the editor workflow in production.
 
 == Frequently Asked Questions ==
 
-= 支持哪些图片格式？ =
+= Which image formats are supported? =
 
-支持 JPEG、PNG、GIF、WebP 格式，所有文件都会经过严格的安全验证。
+JPEG, PNG, GIF, and WebP are supported by default.
 
-= 是否会在本地保存图片？ =
+= Does the plugin store the uploaded image in the local Media Library? =
 
-默认不会占用本地媒体库空间，图片直接上传到配置的云端服务。未来版本将提供双备份模式。
+No. The default editor workflow uploads the image to the configured remote endpoint and inserts the returned remote URL into the post content.
 
-= 如何配置自定义上传端点？ =
+= Can I use my own upload service? =
 
-在插件设置页面修改“上传端点”字段，支持自建 API 服务或自定义域名。出于安全考虑，插件默认只接受公开可访问的 HTTPS 端点。
+Yes. Administrators can replace the default endpoint with another public HTTPS endpoint that accepts the upload request format used by the plugin.
 
-= 这个插件会把哪些数据发送到第三方服务？ =
+= What data is sent to the external service? =
 
-当你粘贴图片并触发上传时，插件会把图片文件发送到当前配置的上传端点。默认服务还会接收文件名、MIME 类型、文件大小等上传元数据；网络基础设施通常也会看到你站点服务器的 IP、User-Agent 和时间戳。请在使用前阅读远端服务的条款与隐私政策。
+The plugin sends the pasted image file and standard upload metadata required by the remote endpoint. The external service or its infrastructure may also see the originating server IP, user agent, and request time.
 
-= 上传失败会重试吗？ =
+= Does the plugin retry failed uploads? =
 
-会自动重试最多 3 次，采用指数退避策略（1s、2s、4s 间隔）。
+Yes. The editor script retries failed uploads up to 3 times with exponential backoff.
 
-= 可以验证自定义端点是否可用吗？ =
+= Can I verify my custom endpoint before enabling the workflow? =
 
-可以。设置页提供“验证端点”按钮，会直接从当前 WordPress 站点发起连通性检测。
+Yes. The settings page includes a "Verify endpoint" button that checks whether the configured endpoint can be reached from the current WordPress site.
 
-= 如何把外链图片回退到本地媒体库？ =
+= Can I migrate remote images back into the local Media Library later? =
 
-进入 “工具 -> Image2URL Migration”，输入文章 ID 后即可扫描、回退和验证。批量模式会创建后台任务，并由 WP-Cron 按批次自动执行。
+Yes. The migration screen under `Tools > Image2URL Migration` can scan posts, localize remote images, validate results, queue background jobs, and export validation reports.
 
-= 可以做全站验证吗？ =
+= Why did a background migration job stop progressing? =
 
-可以。迁移页里的“批量验证队列”支持直接审计当前可访问的全部已发布文章，后台会汇总通过文章、问题项和失败文章数量。
-
-= 批量验证结果可以导出吗？ =
-
-可以。批量验证任务会保存文章级审计结果，支持在当前任务面板里预览，并导出 CSV 供后续整理或分发。
-
-= 验证结果可以按问题类型筛选吗？ =
-
-可以。当前验证任务会把常见问题聚合成正文残留外链、区块仍用外链、区块缺少附件 ID、特色图缺失等类型，并支持在后台直接筛选。
-
-= 可以按严重度或文章类型继续筛选吗？ =
-
-可以。当前验证任务会把结果再切成阻断/高/中/低等严重度，并支持按文章类型筛选，适合大站按栏目或风险优先级分批处理。
-
-= 回退后会同步区块和特色图吗？ =
-
-会。`core/image`、`core/cover`、`core/media-text` 区块会被同步为本地附件引用，前端可重新获得本地 `srcset` 等能力。若文章还没有特色图，插件会默认尝试将正文首张已本地化图片设为特色图；如需关闭，可使用 `image2url_migration_auto_set_featured_image` 过滤器。
-
-= 批量回退为什么没有继续执行？ =
-
-批量回退依赖 WP-Cron。如果站点关闭了内置 WP-Cron，请确保服务器侧有定时任务触发 `wp-cron.php`，否则后台任务不会自动推进。
+Background jobs depend on WP-Cron. If WP-Cron is disabled on the site, you need a server-side cron job that triggers `wp-cron.php`.
 
 == Changelog ==
 
+= 0.12.2 =
+
+* Rewrote the plugin header and readme content in English for directory review compliance
+* Removed WordPress.org directory image assets from the plugin runtime folder
+* Continued hardening the release package so only runtime files are included in the submission zip
+
 = 0.12.1 =
-* 将远端上传统一切换到 WordPress HTTP API，移除直接 cURL 调用
-* 收紧自定义上传端点校验，默认只接受公开可访问的 HTTPS 地址
-* 补充默认外部服务、服务条款和隐私政策披露
-* 后台隐私政策建议文本新增第三方上传说明
+
+* Switched remote uploads to the WordPress HTTP API and removed direct cURL usage
+* Tightened endpoint validation so only public HTTPS endpoints are accepted by default
+* Added external service, terms, and privacy disclosures
+* Added suggested privacy policy content for site owners
 
 = 0.12.0 =
-* 验证报告新增严重度和文章类型筛选
-* 当前任务面板支持按多维条件缩小审计范围
-* 导出的 CSV 新增严重度列，便于批量分发和排序
 
-= 0.11.0 =
-* 验证报告新增问题类型聚合与结果状态筛选
-* 当前任务面板可按问题类型快速定位异常文章
-* 导出的 CSV 新增问题类型列，便于后续整理
+* Added severity and post type filters to validation reports
+* Added richer filtering to the current validation task panel
+* Added severity information to exported CSV reports
 
-= 0.10.0 =
-* 批量验证任务现在会保存文章级审计结果
-* 当前任务面板新增验证报告预览和 CSV 导出入口
-* 最近任务列表中的验证任务支持直接导出 CSV
+== Upgrade Notice ==
 
-= 0.9.0 =
-* 新增批量验证队列，支持指定文章列表或全站审计
-* 任务面板和最近任务列表会按“回退/验证”区分类型和结果摘要
-* 后台 worker 现在同时支持回退任务和验证任务
+= 0.12.2 =
 
-= 0.8.0 =
-* 新增单篇回退结果验证入口
-* 可检查残留外链、块附件绑定异常和特色图状态
-* 验证结果会在迁移页直接输出问题摘要
-
-= 0.7.0 =
-* 回退同步扩展到 core/cover 和 core/media-text
-* 这两类区块的媒体属性会切换为本地附件引用
-* 特色图候选识别现在会优先考虑 cover 和 media-text 中的已本地化图片
-
-= 0.6.0 =
-* 回退时会同步 core/image 区块属性到本地附件引用
-* 本地化后的图片区块重新获得响应式图片标记
-* 文章无特色图时，会自动尝试将正文首张已本地化图片设为特色图
-
-= 0.5.0 =
-* 批量回退改为 WP-Cron 后台执行，不依赖当前管理页持续打开
-* 新增后台任务轮询与重新入队能力
-* 新增任务锁，避免同一批量任务并发重复处理
-* 插件停用/卸载时会清理批量任务定时事件
-
-= 0.4.0 =
-* 新增批量回退任务表和任务状态面板
-* 批量回退改为按批次执行，避免单次请求超时
-* 新增后台自动执行与进度刷新脚本
-* 任务执行结果支持最近日志展示
-
-= 0.3.0 =
-* 新增图片映射表，用于记录外链和本地附件关系
-* 上传成功后自动记录文章级远端图片映射
-* 新增后台迁移工具页，支持单篇扫描、单篇回退和基础批量回退
-* 支持将文章中的外链图片下载到媒体库并替换为本地 URL
-
-= 0.2.0 =
-* 改进远端上传传输实现，增强兼容性
-* 将速率限制改为跨请求生效
-* 新增后台端点连通性验证
-* 支持一次粘贴多张图片后顺序上传
-* 收紧默认支持格式，移除 SVG 默认支持
-
-= 0.1.0 =
-* 首次发布
-* Gutenberg 剪贴板图片上传
-* 自定义端点配置
-* 安全验证机制
-* 重试机制实现
+This release focuses on WordPress.org submission compliance and release packaging hygiene.
 
 == Other Notes ==
 
-**技术要求：**
-* WordPress 5.0+
-* PHP 7.4+
-* 建议站点可正常发起 WordPress HTTP API 外部请求
-* 如需后台批量迁移，请确保 WP-Cron 可正常运行
+Runtime expectations:
 
-**隐私政策：**
-本插件不会在你的 WordPress 站点内额外建立访客行为分析或营销跟踪；但在使用远端上传功能时，图片文件和上传请求元数据会发送到你配置的第三方服务。默认服务文档如下：
-* 服务主页：https://www.image2url.com/
-* 服务条款：https://www.image2url.com/en-IN/terms
-* 隐私政策：https://www.image2url.com/en-IN/privacy
+* WordPress 5.0 or newer
+* PHP 7.4 or newer
+* Outbound requests through the WordPress HTTP API must be allowed
+* WP-Cron should be available if you plan to use background migration or validation jobs
+
+Privacy:
+
+This plugin does not add analytics or marketing tracking by itself, but it does send image uploads and related request metadata to the configured external upload service. Review your chosen service's terms and privacy policy before enabling the workflow for editors.

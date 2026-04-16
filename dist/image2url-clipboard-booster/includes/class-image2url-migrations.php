@@ -84,18 +84,18 @@ class Image2URL_Migrations
                 'currentJobStatus' => !empty($job['status']) ? $job['status'] : '',
                 'pollInterval' => 3000,
                 'messages' => [
-                    'running' => esc_html__('后台正在执行批量任务...', 'image2url-clipboard-booster'),
-                    'idle' => esc_html__('等待开始。', 'image2url-clipboard-booster'),
-                    'completed' => esc_html__('任务已完成。', 'image2url-clipboard-booster'),
-                    'completedWithErrors' => esc_html__('任务已完成，但存在失败项。', 'image2url-clipboard-booster'),
-                    'error' => esc_html__('任务执行失败，请刷新页面后重试。', 'image2url-clipboard-booster'),
-                    'resume' => esc_html__('继续执行', 'image2url-clipboard-booster'),
-                    'start' => esc_html__('开始执行', 'image2url-clipboard-booster'),
-                    'retry' => esc_html__('重新入队', 'image2url-clipboard-booster'),
-                    'processing' => esc_html__('正在加入后台队列...', 'image2url-clipboard-booster'),
-                    'scheduled' => esc_html__('任务已加入后台队列，等待 WP-Cron 执行。', 'image2url-clipboard-booster'),
-                    'runningBackground' => esc_html__('后台执行中', 'image2url-clipboard-booster'),
-                    'refreshing' => esc_html__('正在刷新任务状态...', 'image2url-clipboard-booster'),
+                    'running' => esc_html__('The background job is running...', 'image2url-clipboard-booster'),
+                    'idle' => esc_html__('Waiting to start.', 'image2url-clipboard-booster'),
+                    'completed' => esc_html__('The job is complete.', 'image2url-clipboard-booster'),
+                    'completedWithErrors' => esc_html__('The job finished with failed items.', 'image2url-clipboard-booster'),
+                    'error' => esc_html__('The job failed. Refresh the page and try again.', 'image2url-clipboard-booster'),
+                    'resume' => esc_html__('Resume', 'image2url-clipboard-booster'),
+                    'start' => esc_html__('Start', 'image2url-clipboard-booster'),
+                    'retry' => esc_html__('Requeue', 'image2url-clipboard-booster'),
+                    'processing' => esc_html__('Adding the job to the background queue...', 'image2url-clipboard-booster'),
+                    'scheduled' => esc_html__('The job is queued and waiting for WP-Cron to run.', 'image2url-clipboard-booster'),
+                    'runningBackground' => esc_html__('Running in background', 'image2url-clipboard-booster'),
+                    'refreshing' => esc_html__('Refreshing job status...', 'image2url-clipboard-booster'),
                 ],
             ]
         );
@@ -139,82 +139,82 @@ class Image2URL_Migrations
             <?php $this->render_query_notice(); ?>
             <?php if (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) : ?>
                 <div class="notice notice-warning inline">
-                    <p><?php echo esc_html__('检测到站点已禁用 WP-Cron。若未在服务器侧单独触发 wp-cron.php，批量任务将无法自动推进。', 'image2url-clipboard-booster'); ?></p>
+                    <p><?php echo esc_html__('WP-Cron is disabled on this site. Background jobs will not progress unless wp-cron.php is triggered by a real server cron job.', 'image2url-clipboard-booster'); ?></p>
                 </div>
             <?php endif; ?>
 
-            <p><?php echo esc_html__('这个页面用于把文章里的外链图片下载到 WordPress 媒体库、将内容中的外链替换为本地 URL，并验证回退结果。', 'image2url-clipboard-booster'); ?></p>
-            <p><?php echo esc_html__('回退时会优先把 core/image、core/cover 和 core/media-text 区块同步为本地附件引用；如果文章还没有特色图，会尝试将正文首张已本地化图片设为特色图。', 'image2url-clipboard-booster'); ?></p>
-            <p><?php echo esc_html__('单篇模式适合即时回退和验证；批量模式会创建后台任务，由 WP-Cron 按批次逐篇处理，不依赖当前页面持续打开。', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('Use this screen to download remote image URLs into the local Media Library, replace content URLs with local attachment URLs, and validate the result.', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('During rollback, the plugin also tries to sync core/image, core/cover, and core/media-text blocks to local attachment references. If the post has no featured image, it can use the first localized image as the featured image.', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('Single-post actions are useful for immediate checks. Batch actions create background jobs processed by WP-Cron so the browser does not need to stay open.', 'image2url-clipboard-booster'); ?></p>
 
-            <h2><?php echo esc_html__('状态概览', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Status Overview', 'image2url-clipboard-booster'); ?></h2>
             <table class="widefat striped" style="max-width: 760px;">
                 <tbody>
-                    <tr><th><?php echo esc_html__('映射总数', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['total']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('仅远端', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['remote_only']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('已本地化', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['localized']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('失败', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['failed']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Total mappings', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['total']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Remote only', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['remote_only']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Localized', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['localized']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Failed', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $stats['failed']); ?></td></tr>
                 </tbody>
             </table>
 
             <hr>
-            <h2><?php echo esc_html__('单篇文章', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Single Post', 'image2url-clipboard-booster'); ?></h2>
             <form method="post" style="margin-bottom: 16px;">
                 <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
                 <input type="hidden" name="image2url_migration_action" value="scan_post" />
-                <label for="image2url-post-id-scan"><strong><?php echo esc_html__('文章 ID', 'image2url-clipboard-booster'); ?></strong></label>
+                <label for="image2url-post-id-scan"><strong><?php echo esc_html__('Post ID', 'image2url-clipboard-booster'); ?></strong></label>
                 <input id="image2url-post-id-scan" type="number" min="1" name="post_id" value="" class="small-text" />
-                <?php submit_button(__('扫描外链图片', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
+                <?php submit_button(__('Scan Remote Images', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
             </form>
 
             <form method="post" style="margin-bottom: 24px;">
                 <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
                 <input type="hidden" name="image2url_migration_action" value="rollback_post" />
-                <label for="image2url-post-id-rollback"><strong><?php echo esc_html__('文章 ID', 'image2url-clipboard-booster'); ?></strong></label>
+                <label for="image2url-post-id-rollback"><strong><?php echo esc_html__('Post ID', 'image2url-clipboard-booster'); ?></strong></label>
                 <input id="image2url-post-id-rollback" type="number" min="1" name="post_id" value="" class="small-text" />
-                <?php submit_button(__('回退到本地媒体库', 'image2url-clipboard-booster'), 'primary', 'submit', false); ?>
+                <?php submit_button(__('Rollback to Media Library', 'image2url-clipboard-booster'), 'primary', 'submit', false); ?>
             </form>
 
             <form method="post" style="margin-bottom: 24px;">
                 <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
                 <input type="hidden" name="image2url_migration_action" value="validate_post" />
-                <label for="image2url-post-id-validate"><strong><?php echo esc_html__('文章 ID', 'image2url-clipboard-booster'); ?></strong></label>
+                <label for="image2url-post-id-validate"><strong><?php echo esc_html__('Post ID', 'image2url-clipboard-booster'); ?></strong></label>
                 <input id="image2url-post-id-validate" type="number" min="1" name="post_id" value="" class="small-text" />
-                <?php submit_button(__('验证回退结果', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
+                <?php submit_button(__('Validate Rollback Result', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
             </form>
 
             <?php if (!empty($this->last_validation_report)) : ?>
                 <?php $this->render_validation_report($this->last_validation_report); ?>
             <?php endif; ?>
 
-            <h2><?php echo esc_html__('批量回退队列', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Batch Rollback Queue', 'image2url-clipboard-booster'); ?></h2>
             <form method="post">
                 <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
                 <input type="hidden" name="image2url_migration_action" value="queue_batch_job" />
                 <p>
-                    <label for="image2url-post-ids"><strong><?php echo esc_html__('文章 ID 列表', 'image2url-clipboard-booster'); ?></strong></label><br />
+                    <label for="image2url-post-ids"><strong><?php echo esc_html__('Post ID List', 'image2url-clipboard-booster'); ?></strong></label><br />
                     <textarea id="image2url-post-ids" name="post_ids" rows="4" cols="70" placeholder="12, 35, 48"></textarea>
                 </p>
-                <p class="description"><?php echo esc_html__('输入逗号、空格或换行分隔的文章 ID。系统会创建后台任务并按批次逐篇回退，适合大站点处理。', 'image2url-clipboard-booster'); ?></p>
-                <?php submit_button(__('创建批量回退任务', 'image2url-clipboard-booster'), 'primary', 'submit', false); ?>
+                <p class="description"><?php echo esc_html__('Enter post IDs separated by commas, spaces, or new lines. The plugin will create a background rollback job and process the posts in batches.', 'image2url-clipboard-booster'); ?></p>
+                <?php submit_button(__('Create Batch Rollback Job', 'image2url-clipboard-booster'), 'primary', 'submit', false); ?>
             </form>
 
-            <h2><?php echo esc_html__('批量验证队列', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Batch Validation Queue', 'image2url-clipboard-booster'); ?></h2>
             <form method="post" style="margin-bottom: 24px;">
                 <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
                 <input type="hidden" name="image2url_migration_action" value="queue_validation_job" />
                 <p>
-                    <label for="image2url-validation-post-ids"><strong><?php echo esc_html__('文章 ID 列表', 'image2url-clipboard-booster'); ?></strong></label><br />
+                    <label for="image2url-validation-post-ids"><strong><?php echo esc_html__('Post ID List', 'image2url-clipboard-booster'); ?></strong></label><br />
                     <textarea id="image2url-validation-post-ids" name="post_ids" rows="4" cols="70" placeholder="12, 35, 48"></textarea>
                 </p>
                 <p>
                     <label>
                         <input type="checkbox" name="audit_all_posts" value="1" />
-                        <?php echo esc_html__('审计当前可访问的全部已发布文章', 'image2url-clipboard-booster'); ?>
+                        <?php echo esc_html__('Audit all currently accessible published posts', 'image2url-clipboard-booster'); ?>
                     </label>
                 </p>
-                <p class="description"><?php echo esc_html__('可输入指定文章 ID，也可以直接做全站审计。验证任务会检查残留外链、块附件绑定和特色图状态。', 'image2url-clipboard-booster'); ?></p>
-                <?php submit_button(__('创建批量验证任务', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
+                <p class="description"><?php echo esc_html__('You can enter a specific list of post IDs or audit all published posts. Validation jobs check remaining remote URLs, block attachment bindings, and featured image state.', 'image2url-clipboard-booster'); ?></p>
+                <?php submit_button(__('Create Batch Validation Job', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
             </form>
 
             <?php if (!empty($current_job)) : ?>
@@ -222,19 +222,19 @@ class Image2URL_Migrations
             <?php endif; ?>
 
             <hr>
-            <h2><?php echo esc_html__('最近任务', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Recent Jobs', 'image2url-clipboard-booster'); ?></h2>
             <?php if (empty($recent_jobs)) : ?>
-                <p><?php echo esc_html__('还没有批量任务记录。', 'image2url-clipboard-booster'); ?></p>
+                <p><?php echo esc_html__('No batch jobs have been recorded yet.', 'image2url-clipboard-booster'); ?></p>
             <?php else : ?>
                 <table class="widefat striped">
                     <thead>
                         <tr>
-                            <th><?php echo esc_html__('任务', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('类型', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('状态', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('进度', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('结果摘要', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('更新时间', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Job', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Type', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Status', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Progress', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Result Summary', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Updated', 'image2url-clipboard-booster'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -244,7 +244,7 @@ class Image2URL_Migrations
                                     <a href="<?php echo esc_url($this->build_job_link((int) $job['id'])); ?>">#<?php echo esc_html((string) $job['id']); ?></a>
                                     <?php if ('validation' === $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'))) : ?>
                                         <br />
-                                        <a href="<?php echo esc_url($this->build_job_export_link((int) $job['id'])); ?>" class="button-link"><?php echo esc_html__('导出 CSV', 'image2url-clipboard-booster'); ?></a>
+                                        <a href="<?php echo esc_url($this->build_job_export_link((int) $job['id'])); ?>" class="button-link"><?php echo esc_html__('Export CSV', 'image2url-clipboard-booster'); ?></a>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html($this->get_job_type_label((string) ($job['job_type'] ?? 'rollback'))); ?></td>
@@ -259,18 +259,18 @@ class Image2URL_Migrations
             <?php endif; ?>
 
             <hr>
-            <h2><?php echo esc_html__('最近映射', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Recent Mappings', 'image2url-clipboard-booster'); ?></h2>
             <?php if (empty($recent_rows)) : ?>
-                <p><?php echo esc_html__('还没有可展示的映射记录。', 'image2url-clipboard-booster'); ?></p>
+                <p><?php echo esc_html__('No mapping records are available yet.', 'image2url-clipboard-booster'); ?></p>
             <?php else : ?>
                 <table class="widefat striped">
                     <thead>
                         <tr>
-                            <th><?php echo esc_html__('文章', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('远端 URL', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('状态', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('本地附件', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('更新时间', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Post', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Remote URL', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Status', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Local Attachment', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Updated', 'image2url-clipboard-booster'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -280,7 +280,7 @@ class Image2URL_Migrations
                                     <?php if (!empty($row['post_id'])) : ?>
                                         <a href="<?php echo esc_url(get_edit_post_link((int) $row['post_id'])); ?>"><?php echo esc_html(get_the_title((int) $row['post_id']) ?: '#' . (int) $row['post_id']); ?></a>
                                     <?php else : ?>
-                                        <?php echo esc_html__('未关联文章', 'image2url-clipboard-booster'); ?>
+                                        <?php echo esc_html__('No linked post', 'image2url-clipboard-booster'); ?>
                                     <?php endif; ?>
                                 </td>
                                 <td style="word-break: break-all;"><?php echo esc_html($row['remote_url']); ?></td>
@@ -353,7 +353,7 @@ class Image2URL_Migrations
 
             $local_url = wp_get_attachment_url($attachment_id);
             if (!$local_url) {
-                $errors[$remote_url] = esc_html__('本地附件已创建，但无法读取附件 URL。', 'image2url-clipboard-booster');
+                $errors[$remote_url] = esc_html__('The local attachment was created, but its URL could not be read.', 'image2url-clipboard-booster');
                 continue;
             }
 
@@ -413,14 +413,14 @@ class Image2URL_Migrations
 
             if (in_array($remote_url, $remaining_remote_urls, true)) {
                 $issues[] = sprintf(
-                    esc_html__('正文仍引用远端图片：%s', 'image2url-clipboard-booster'),
+                    esc_html__('Content still references a remote image: %s', 'image2url-clipboard-booster'),
                     $remote_url
                 );
             }
 
             if ($attachment_id > 0 && !$has_valid_attachment) {
                 $issues[] = sprintf(
-                    esc_html__('映射记录指向的本地附件不存在：%1$s -> #%2$d', 'image2url-clipboard-booster'),
+                    esc_html__('A mapping points to a missing local attachment: %1$s -> #%2$d', 'image2url-clipboard-booster'),
                     $remote_url,
                     $attachment_id
                 );
@@ -437,11 +437,11 @@ class Image2URL_Migrations
         $featured_image_id = has_post_thumbnail($post_id) ? (int) get_post_thumbnail_id($post_id) : 0;
         if ($featured_image_id > 0 && !get_post($featured_image_id)) {
             $issues[] = sprintf(
-                esc_html__('特色图引用的附件不存在：#%d', 'image2url-clipboard-booster'),
+                esc_html__('The featured image points to a missing attachment: #%d', 'image2url-clipboard-booster'),
                 $featured_image_id
             );
         } elseif (0 === $featured_image_id && $localized_mappings > 0 && post_type_supports((string) get_post_type($post_id), 'thumbnail')) {
-            $issues[] = esc_html__('文章没有特色图，但已有可用的本地化图片。', 'image2url-clipboard-booster');
+            $issues[] = esc_html__('The post has no featured image, but localized images are available.', 'image2url-clipboard-booster');
         }
 
         return [
@@ -462,17 +462,17 @@ class Image2URL_Migrations
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!wp_verify_nonce($nonce, 'image2url_migration_job')) {
-            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('Security verification failed.', 'image2url-clipboard-booster')], 403);
         }
 
         if (!current_user_can('upload_files')) {
-            wp_send_json_error(['message' => esc_html__('您没有权限执行迁移任务。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('You do not have permission to run migration jobs.', 'image2url-clipboard-booster')], 403);
         }
 
         $job_id = isset($_POST['jobId']) ? absint(wp_unslash($_POST['jobId'])) : 0;
         $result = $this->queue_job_for_background($job_id);
         if (is_wp_error($result) || !$result) {
-            wp_send_json_error(['message' => is_wp_error($result) ? $result->get_error_message() : esc_html__('任务启动失败，请稍后重试。', 'image2url-clipboard-booster')], 400);
+            wp_send_json_error(['message' => is_wp_error($result) ? $result->get_error_message() : esc_html__('The job could not be started. Please try again.', 'image2url-clipboard-booster')], 400);
         }
 
         wp_send_json_success($this->format_job_for_response($result));
@@ -482,17 +482,17 @@ class Image2URL_Migrations
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!wp_verify_nonce($nonce, 'image2url_migration_job')) {
-            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('Security verification failed.', 'image2url-clipboard-booster')], 403);
         }
 
         if (!current_user_can('upload_files')) {
-            wp_send_json_error(['message' => esc_html__('您没有权限查看迁移任务。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('You do not have permission to view migration jobs.', 'image2url-clipboard-booster')], 403);
         }
 
         $job_id = isset($_POST['jobId']) ? absint(wp_unslash($_POST['jobId'])) : 0;
         $job = $this->get_job($job_id);
         if (!$job || !$this->can_access_job($job)) {
-            wp_send_json_error(['message' => esc_html__('未找到可访问的批量任务。', 'image2url-clipboard-booster')], 404);
+            wp_send_json_error(['message' => esc_html__('No accessible batch job could be found.', 'image2url-clipboard-booster')], 404);
         }
 
         wp_send_json_success($this->format_job_for_response($job));
@@ -564,7 +564,7 @@ class Image2URL_Migrations
                     add_settings_error('image2url_migration', 'image2url_scan_error', $result['error'], 'error');
                     return;
                 }
-                add_settings_error('image2url_migration', 'image2url_scan_success', sprintf(esc_html__('文章“%1$s”扫描完成，发现 %2$d 张外链图片，新建 %3$d 条映射。', 'image2url-clipboard-booster'), $result['post_title'] ?: '#' . $post_id, (int) $result['found'], (int) $result['created']), 'updated');
+                add_settings_error('image2url_migration', 'image2url_scan_success', sprintf(esc_html__('Scan complete for "%1$s": found %2$d remote images and created %3$d new mappings.', 'image2url-clipboard-booster'), $result['post_title'] ?: '#' . $post_id, (int) $result['found'], (int) $result['created']), 'updated');
                 return;
 
             case 'rollback_post':
@@ -574,12 +574,12 @@ class Image2URL_Migrations
                     add_settings_error('image2url_migration', 'image2url_rollback_error', $result['error'], 'error');
                     return;
                 }
-                $message = sprintf(esc_html__('文章“%1$s”回退完成，下载 %2$d 张，替换 %3$d 处，失败 %4$d 张。', 'image2url-clipboard-booster'), $result['post_title'] ?: '#' . $post_id, (int) $result['localized'], (int) $result['replaced'], (int) $result['failed']);
+                $message = sprintf(esc_html__('Rollback complete for "%1$s": downloaded %2$d images, replaced %3$d URLs, failed %4$d images.', 'image2url-clipboard-booster'), $result['post_title'] ?: '#' . $post_id, (int) $result['localized'], (int) $result['replaced'], (int) $result['failed']);
                 if (!empty($result['synced_blocks'])) {
-                    $message .= ' ' . sprintf(esc_html__('同步 %d 个图片区块到本地附件。', 'image2url-clipboard-booster'), (int) $result['synced_blocks']);
+                    $message .= ' ' . sprintf(esc_html__('Synced %d image blocks to local attachments.', 'image2url-clipboard-booster'), (int) $result['synced_blocks']);
                 }
                 if (!empty($result['featured_image_set'])) {
-                    $message .= ' ' . esc_html__('已自动设置正文首图为特色图。', 'image2url-clipboard-booster');
+                    $message .= ' ' . esc_html__('The first localized image was automatically set as the featured image.', 'image2url-clipboard-booster');
                 }
                 if (!empty($result['errors'])) {
                     $message .= ' ' . implode(' ', array_values($result['errors']));
@@ -597,7 +597,7 @@ class Image2URL_Migrations
 
                 $this->last_validation_report = $result;
                 $summary = sprintf(
-                    esc_html__('文章“%1$s”验证完成：映射 %2$d 条，已本地化 %3$d 条，残留外链 %4$d 条，检测区块 %5$d 个，问题 %6$d 项。', 'image2url-clipboard-booster'),
+                    esc_html__('Validation complete for "%1$s": %2$d mappings, %3$d localized, %4$d remote URLs remaining, %5$d blocks checked, %6$d issues found.', 'image2url-clipboard-booster'),
                     $result['post_title'] ?: '#' . $post_id,
                     (int) $result['mapping_total'],
                     (int) $result['localized_mappings'],
@@ -611,12 +611,12 @@ class Image2URL_Migrations
             case 'queue_batch_job':
                 $post_ids = $this->parse_post_ids(isset($_POST['post_ids']) ? wp_unslash($_POST['post_ids']) : '');
                 if (empty($post_ids)) {
-                    add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('请至少输入一个有效的文章 ID。', 'image2url-clipboard-booster'), 'error');
+                    add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('Enter at least one valid post ID.', 'image2url-clipboard-booster'), 'error');
                     return;
                 }
                 $job_id = $this->create_batch_job($post_ids, 'rollback');
                 if ($job_id <= 0) {
-                    add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('创建批量任务失败，请稍后重试。', 'image2url-clipboard-booster'), 'error');
+                    add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('The batch job could not be created. Please try again.', 'image2url-clipboard-booster'), 'error');
                     return;
                 }
                 $queue_result = $this->queue_job_for_background($job_id);
@@ -634,13 +634,13 @@ class Image2URL_Migrations
                     : $this->parse_post_ids(isset($_POST['post_ids']) ? wp_unslash($_POST['post_ids']) : '');
 
                 if (empty($post_ids)) {
-                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('请至少输入一个有效的文章 ID，或选择全站审计。', 'image2url-clipboard-booster'), 'error');
+                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('Enter at least one valid post ID or choose the full-site audit option.', 'image2url-clipboard-booster'), 'error');
                     return;
                 }
 
                 $job_id = $this->create_batch_job($post_ids, 'validation');
                 if ($job_id <= 0) {
-                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('创建批量验证任务失败，请稍后重试。', 'image2url-clipboard-booster'), 'error');
+                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('The batch validation job could not be created. Please try again.', 'image2url-clipboard-booster'), 'error');
                     return;
                 }
 
@@ -666,7 +666,7 @@ class Image2URL_Migrations
         $job_label = $this->get_job_type_label((string) ($current_job['job_type'] ?? 'rollback'));
         ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php echo esc_html(sprintf(__('%1$s #%2$d 已创建，并已加入后台队列。页面会自动刷新状态。', 'image2url-clipboard-booster'), $job_label, $this->current_job_id)); ?></p>
+            <p><?php echo esc_html(sprintf(__('%1$s #%2$d has been created and added to the background queue. This page will refresh automatically.', 'image2url-clipboard-booster'), $job_label, $this->current_job_id)); ?></p>
         </div>
         <?php
     }
@@ -678,13 +678,13 @@ class Image2URL_Migrations
         $is_validation_job = 'validation' === $this->normalize_job_type((string) ($job_view['jobType'] ?? 'rollback'));
         ?>
         <hr>
-        <h2><?php echo esc_html__('当前任务', 'image2url-clipboard-booster'); ?></h2>
+        <h2><?php echo esc_html__('Current Job', 'image2url-clipboard-booster'); ?></h2>
         <div data-image2url-job-panel="true" data-job-id="<?php echo esc_attr((string) $job_view['id']); ?>" data-job-status="<?php echo esc_attr($job_view['status']); ?>" style="border:1px solid #dcdcde; background:#fff; padding:16px; max-width:900px;">
-            <p><strong><?php echo esc_html__('任务 #', 'image2url-clipboard-booster') . esc_html((string) $job_view['id']); ?></strong> <span style="margin-left:12px;"><?php echo esc_html__('类型：', 'image2url-clipboard-booster'); ?><?php echo esc_html($this->get_job_type_label((string) ($job_view['jobType'] ?? 'rollback'))); ?></span> <span style="margin-left:12px;"><?php echo esc_html__('状态：', 'image2url-clipboard-booster'); ?><span data-image2url-job-status-label="true"><?php echo esc_html($job_view['status']); ?></span></span></p>
+            <p><strong><?php echo esc_html__('Job #', 'image2url-clipboard-booster') . esc_html((string) $job_view['id']); ?></strong> <span style="margin-left:12px;"><?php echo esc_html__('Type: ', 'image2url-clipboard-booster'); ?><?php echo esc_html($this->get_job_type_label((string) ($job_view['jobType'] ?? 'rollback'))); ?></span> <span style="margin-left:12px;"><?php echo esc_html__('Status: ', 'image2url-clipboard-booster'); ?><span data-image2url-job-status-label="true"><?php echo esc_html($job_view['status']); ?></span></span></p>
             <p data-image2url-job-message="true"><?php echo esc_html($job_view['lastMessage']); ?></p>
             <table class="widefat striped" style="max-width:760px; margin-bottom:12px;">
                 <tbody>
-                    <tr><th><?php echo esc_html__('进度', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-progress="true"><?php echo esc_html((string) $job_view['processedPosts']); ?>/<?php echo esc_html((string) $job_view['totalPosts']); ?></span></td></tr>
+                    <tr><th><?php echo esc_html__('Progress', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-progress="true"><?php echo esc_html((string) $job_view['processedPosts']); ?>/<?php echo esc_html((string) $job_view['totalPosts']); ?></span></td></tr>
                     <tr><th><?php echo esc_html($metric_labels['primary']); ?></th><td><span data-image2url-job-localized="true"><?php echo esc_html((string) $job_view['localizedCount']); ?></span></td></tr>
                     <tr><th><?php echo esc_html($metric_labels['secondary']); ?></th><td><span data-image2url-job-replaced="true"><?php echo esc_html((string) $job_view['replacedCount']); ?></span></td></tr>
                     <tr><th><?php echo esc_html($metric_labels['failure']); ?></th><td><span data-image2url-job-failed="true"><?php echo esc_html((string) $job_view['failedCount']); ?></span></td></tr>
@@ -693,10 +693,10 @@ class Image2URL_Migrations
             <p>
                 <button type="button" class="button button-primary" data-image2url-run-job="true"><?php echo esc_html($this->get_job_button_label($job_view['status'])); ?></button>
                 <?php if ($is_validation_job) : ?>
-                    <a href="<?php echo esc_url($this->build_job_export_link((int) $job_view['id'])); ?>" class="button button-secondary" style="margin-left:8px;"><?php echo esc_html__('导出 CSV', 'image2url-clipboard-booster'); ?></a>
+                    <a href="<?php echo esc_url($this->build_job_export_link((int) $job_view['id'])); ?>" class="button button-secondary" style="margin-left:8px;"><?php echo esc_html__('Export CSV', 'image2url-clipboard-booster'); ?></a>
                 <?php endif; ?>
             </p>
-            <p><strong><?php echo esc_html__('最近日志', 'image2url-clipboard-booster'); ?></strong></p>
+            <p><strong><?php echo esc_html__('Recent Log', 'image2url-clipboard-booster'); ?></strong></p>
             <pre data-image2url-job-log="true" style="background:#f6f7f7; border:1px solid #dcdcde; padding:12px; max-height:220px; overflow:auto; white-space:pre-wrap;"><?php echo esc_html($job_view['errorLog']); ?></pre>
             <?php if ($is_validation_job) : ?>
                 <?php $this->render_validation_job_report_preview($job); ?>
@@ -709,24 +709,24 @@ class Image2URL_Migrations
     {
         ?>
         <div style="border:1px solid #dcdcde; background:#fff; padding:16px; max-width:900px; margin-bottom:24px;">
-            <h3 style="margin-top:0;"><?php echo esc_html__('回退验证结果', 'image2url-clipboard-booster'); ?></h3>
+            <h3 style="margin-top:0;"><?php echo esc_html__('Rollback Validation Result', 'image2url-clipboard-booster'); ?></h3>
             <table class="widefat striped" style="max-width:760px; margin-bottom:12px;">
                 <tbody>
-                    <tr><th><?php echo esc_html__('文章', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html($report['post_title'] ?: '#' . (int) $report['post_id']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('映射总数', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['mapping_total']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('有效本地化映射', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['localized_mappings']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('残留远端图片', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) count($report['remaining_remote_urls'])); ?></td></tr>
-                    <tr><th><?php echo esc_html__('已检查媒体块', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['checked_blocks']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('块级问题', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['block_issues']); ?></td></tr>
-                    <tr><th><?php echo esc_html__('特色图', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['featured_image_id']) ? esc_html('#' . (int) $report['featured_image_id']) : esc_html__('未设置', 'image2url-clipboard-booster'); ?></td></tr>
-                    <tr><th><?php echo esc_html__('结果', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['passed']) ? esc_html__('通过', 'image2url-clipboard-booster') : esc_html__('发现问题', 'image2url-clipboard-booster'); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Post', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html($report['post_title'] ?: '#' . (int) $report['post_id']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Total mappings', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['mapping_total']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Localized mappings', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['localized_mappings']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Remaining remote images', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) count($report['remaining_remote_urls'])); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Checked media blocks', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['checked_blocks']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Block-level issues', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['block_issues']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Featured image', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['featured_image_id']) ? esc_html('#' . (int) $report['featured_image_id']) : esc_html__('Not set', 'image2url-clipboard-booster'); ?></td></tr>
+                    <tr><th><?php echo esc_html__('Result', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['passed']) ? esc_html__('Passed', 'image2url-clipboard-booster') : esc_html__('Issues found', 'image2url-clipboard-booster'); ?></td></tr>
                 </tbody>
             </table>
 
             <?php if (empty($report['issues'])) : ?>
-                <p><?php echo esc_html__('没有发现明显的回退残留或块引用问题。', 'image2url-clipboard-booster'); ?></p>
+                <p><?php echo esc_html__('No obvious rollback residue or block reference issues were found.', 'image2url-clipboard-booster'); ?></p>
             <?php else : ?>
-                <p><strong><?php echo esc_html__('问题明细', 'image2url-clipboard-booster'); ?></strong></p>
+                <p><strong><?php echo esc_html__('Issue Details', 'image2url-clipboard-booster'); ?></strong></p>
                 <ul style="list-style:disc; padding-left:20px;">
                     <?php foreach ($report['issues'] as $issue) : ?>
                         <li><?php echo esc_html($issue); ?></li>
@@ -750,13 +750,13 @@ class Image2URL_Migrations
         $job_id = (int) ($job['id'] ?? 0);
         ?>
         <div style="margin-top:16px;">
-            <p><strong><?php echo esc_html__('验证报告预览', 'image2url-clipboard-booster'); ?></strong></p>
+            <p><strong><?php echo esc_html__('Validation Report Preview', 'image2url-clipboard-booster'); ?></strong></p>
             <?php if (empty($entries)) : ?>
-                <p><?php echo esc_html__('当前还没有可导出的验证结果。任务至少处理一篇文章后，就可以下载 CSV。', 'image2url-clipboard-booster'); ?></p>
+                <p><?php echo esc_html__('No validation results are available for export yet. Once the job processes at least one post, CSV export becomes available.', 'image2url-clipboard-booster'); ?></p>
             <?php else : ?>
-                <p class="description"><?php echo esc_html(sprintf(__('已记录 %d 篇文章的验证结果。默认会优先展示有问题的条目；完整结果请使用上方筛选或 CSV 导出。', 'image2url-clipboard-booster'), count($entries))); ?></p>
+                <p class="description"><?php echo esc_html(sprintf(__('Validation results have been recorded for %d posts. Problem entries are prioritized by default. Use the filters or CSV export for the full dataset.', 'image2url-clipboard-booster'), count($entries))); ?></p>
                 <p>
-                    <strong><?php echo esc_html__('结果筛选：', 'image2url-clipboard-booster'); ?></strong>
+                    <strong><?php echo esc_html__('Result filter:', 'image2url-clipboard-booster'); ?></strong>
                     <?php foreach ($this->get_validation_result_filter_options() as $result_key => $label) : ?>
                         <?php $is_active = $filters['result_status'] === $result_key; ?>
                         <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_result' => $result_key])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($label); ?><?php if (isset($summary['result_counts'][$result_key])) : ?> (<?php echo esc_html((string) $summary['result_counts'][$result_key]); ?>)<?php endif; ?></a>
@@ -764,7 +764,7 @@ class Image2URL_Migrations
                 </p>
                 <?php if (!empty($summary['severity_counts'])) : ?>
                     <p>
-                        <strong><?php echo esc_html__('严重度：', 'image2url-clipboard-booster'); ?></strong>
+                        <strong><?php echo esc_html__('Severity:', 'image2url-clipboard-booster'); ?></strong>
                         <?php foreach ($this->get_validation_severity_filter_options() as $severity_key => $label) : ?>
                             <?php $is_active = $filters['severity'] === $severity_key; ?>
                             <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_severity' => $severity_key])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($label); ?><?php if (isset($summary['severity_counts'][$severity_key])) : ?> (<?php echo esc_html((string) $summary['severity_counts'][$severity_key]); ?>)<?php endif; ?></a>
@@ -773,8 +773,8 @@ class Image2URL_Migrations
                 <?php endif; ?>
                 <?php if (!empty($summary['post_type_counts'])) : ?>
                     <p>
-                        <strong><?php echo esc_html__('文章类型：', 'image2url-clipboard-booster'); ?></strong>
-                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_post_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['post_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('全部类型', 'image2url-clipboard-booster'); ?></a>
+                        <strong><?php echo esc_html__('Post type:', 'image2url-clipboard-booster'); ?></strong>
+                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_post_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['post_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('All post types', 'image2url-clipboard-booster'); ?></a>
                         <?php foreach ($summary['post_type_counts'] as $post_type => $count) : ?>
                             <?php $is_active = $filters['post_type'] === $post_type; ?>
                             <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_post_type' => $post_type])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($this->get_validation_post_type_label((string) $post_type)); ?> (<?php echo esc_html((string) $count); ?>)</a>
@@ -783,8 +783,8 @@ class Image2URL_Migrations
                 <?php endif; ?>
                 <?php if (!empty($summary['issue_type_counts'])) : ?>
                     <p>
-                        <strong><?php echo esc_html__('问题类型：', 'image2url-clipboard-booster'); ?></strong>
-                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_issue_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['issue_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('全部问题', 'image2url-clipboard-booster'); ?></a>
+                        <strong><?php echo esc_html__('Issue type:', 'image2url-clipboard-booster'); ?></strong>
+                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_issue_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['issue_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('All issue types', 'image2url-clipboard-booster'); ?></a>
                         <?php foreach ($summary['issue_type_counts'] as $issue_type => $count) : ?>
                             <?php $is_active = $filters['issue_type'] === $issue_type; ?>
                             <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_issue_type' => $issue_type])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($this->get_validation_issue_type_label((string) $issue_type)); ?> (<?php echo esc_html((string) $count); ?>)</a>
@@ -794,20 +794,20 @@ class Image2URL_Migrations
                 <table class="widefat striped" style="max-width:860px; margin-bottom:12px;">
                     <thead>
                         <tr>
-                            <th><?php echo esc_html__('文章', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('文章类型', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('结果', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('严重度', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('问题类型', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('问题数', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('摘要', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('检查时间', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Post', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Post type', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Result', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Severity', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Issue type', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Issue count', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Summary', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('Checked at', 'image2url-clipboard-booster'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($preview_entries)) : ?>
                             <tr>
-                                <td colspan="8"><?php echo esc_html__('当前筛选条件下没有匹配结果。', 'image2url-clipboard-booster'); ?></td>
+                                <td colspan="8"><?php echo esc_html__('No entries match the current filters.', 'image2url-clipboard-booster'); ?></td>
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($preview_entries as $entry) : ?>
@@ -825,14 +825,14 @@ class Image2URL_Migrations
                                 <td><?php echo esc_html($this->get_validation_severity_label((string) ($entry['severity'] ?? 'none'))); ?></td>
                                 <td><?php echo esc_html($this->format_validation_issue_types((array) ($entry['issue_types'] ?? []))); ?></td>
                                 <td><?php echo esc_html((string) ($entry['issue_count'] ?? 0)); ?></td>
-                                <td style="word-break:break-word;"><?php echo esc_html($entry['issue_summary'] ?: __('无异常', 'image2url-clipboard-booster')); ?></td>
+                                <td style="word-break:break-word;"><?php echo esc_html($entry['issue_summary'] ?: __('No issues', 'image2url-clipboard-booster')); ?></td>
                                 <td><?php echo esc_html((string) ($entry['checked_at'] ?? '')); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
                 <?php if (count($ordered_entries) > count($preview_entries)) : ?>
-                    <p class="description"><?php echo esc_html(sprintf(__('当前筛选命中 %1$d 条，仅展示前 %2$d 条。其余结果请导出 CSV 查看完整明细。', 'image2url-clipboard-booster'), count($ordered_entries), count($preview_entries))); ?></p>
+                    <p class="description"><?php echo esc_html(sprintf(__('The current filters match %1$d entries. Only the first %2$d are shown here. Export CSV to review the full result set.', 'image2url-clipboard-booster'), count($ordered_entries), count($preview_entries))); ?></p>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
@@ -1054,35 +1054,35 @@ class Image2URL_Migrations
 
     private function classify_validation_issue_type(string $issue): string
     {
-        if (false !== strpos($issue, '正文仍引用远端图片')) {
+        if (false !== strpos($issue, 'Content still references a remote image')) {
             return 'remaining_remote';
         }
 
-        if (false !== strpos($issue, '映射记录指向的本地附件不存在')) {
+        if (false !== strpos($issue, 'mapping points to a missing local attachment')) {
             return 'missing_mapped_attachment';
         }
 
-        if (false !== strpos($issue, '特色图引用的附件不存在')) {
+        if (false !== strpos($issue, 'featured image points to a missing attachment')) {
             return 'missing_featured_attachment';
         }
 
-        if (false !== strpos($issue, '文章没有特色图')) {
+        if (false !== strpos($issue, 'post has no featured image')) {
             return 'missing_featured_image';
         }
 
-        if (preg_match('/^core\/image .*仍使用远端图片/u', $issue)) {
+        if (preg_match('/^core\/image .*still uses a remote image/u', $issue)) {
             return 'block_remote_image';
         }
 
-        if (preg_match('/^core\/(image|cover|media-text) 引用的本地附件不存在/u', $issue)) {
+        if (preg_match('/^core\/(image|cover|media-text) references a missing local attachment/u', $issue)) {
             return 'block_missing_attachment';
         }
 
-        if (preg_match('/^core\/(image|cover|media-text) 已切到本地 URL，但缺少附件 ID/u', $issue)) {
+        if (preg_match('/^core\/(image|cover|media-text) uses a local URL but has no attachment ID/u', $issue)) {
             return 'block_missing_attachment_id';
         }
 
-        if (preg_match('/^core\/(image|cover|media-text) 已有映射记录，但块属性还没绑定本地附件/u', $issue)) {
+        if (preg_match('/^core\/(image|cover|media-text) has a mapping record but the block is not bound to the local attachment/u', $issue)) {
             return 'block_unbound_mapping';
         }
 
@@ -1137,7 +1137,7 @@ class Image2URL_Migrations
                 'localized_count' => 0,
                 'replaced_count' => 0,
                 'failed_count' => 0,
-                'last_message' => esc_html__('等待开始。', 'image2url-clipboard-booster'),
+                'last_message' => esc_html__('Waiting to start.', 'image2url-clipboard-booster'),
                 'error_log' => '',
                 'report_json' => '[]',
                 'created_at' => $timestamp,
@@ -1160,10 +1160,10 @@ class Image2URL_Migrations
     {
         $job = $this->get_job($job_id);
         if (!$job) {
-            return new WP_Error('image2url_job_missing', esc_html__('未找到该批量任务。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_job_missing', esc_html__('The requested batch job could not be found.', 'image2url-clipboard-booster'));
         }
         if (!$this->can_access_job($job)) {
-            return new WP_Error('image2url_job_forbidden', esc_html__('您没有权限执行该批量任务。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_job_forbidden', esc_html__('You do not have permission to run this batch job.', 'image2url-clipboard-booster'));
         }
         if (in_array($job['status'], ['completed', 'completed_with_errors'], true)) {
             return $job;
@@ -1176,20 +1176,20 @@ class Image2URL_Migrations
 
         if ('failed' === $job['status']) {
             $fields['status'] = 'queued';
-            $fields['last_message'] = esc_html__('任务已重新加入后台队列。', 'image2url-clipboard-booster');
+            $fields['last_message'] = esc_html__('The job was requeued.', 'image2url-clipboard-booster');
         } elseif ('queued' === $job['status']) {
-            $fields['last_message'] = esc_html__('任务已加入后台队列，等待 WP-Cron 执行。', 'image2url-clipboard-booster');
+            $fields['last_message'] = esc_html__('The job was added to the background queue and is waiting for WP-Cron.', 'image2url-clipboard-booster');
         } elseif ($this->is_job_locked($job_id)) {
-            $fields['last_message'] = esc_html__('后台正在执行当前任务。', 'image2url-clipboard-booster');
+            $fields['last_message'] = esc_html__('The current job is running in the background.', 'image2url-clipboard-booster');
             $this->update_job($job_id, $fields);
             return $this->get_job($job_id);
         } else {
-            $fields['last_message'] = esc_html__('任务将继续在后台执行。', 'image2url-clipboard-booster');
+            $fields['last_message'] = esc_html__('The job will continue running in the background.', 'image2url-clipboard-booster');
         }
 
         $this->update_job($job_id, $fields);
         if (!$this->schedule_job($job_id, 1)) {
-            return new WP_Error('image2url_job_schedule_failed', esc_html__('任务已创建，但加入后台队列失败。请检查站点定时任务配置。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_job_schedule_failed', esc_html__('The job was created, but it could not be scheduled in the background queue. Check the WP-Cron configuration.', 'image2url-clipboard-booster'));
         }
 
         $this->maybe_spawn_cron();
@@ -1201,10 +1201,10 @@ class Image2URL_Migrations
     {
         $job = $this->get_job($job_id);
         if (!$job) {
-            return new WP_Error('image2url_job_missing', esc_html__('未找到该批量任务。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_job_missing', esc_html__('The requested batch job could not be found.', 'image2url-clipboard-booster'));
         }
         if (!$skip_job_access_check && !$this->can_access_job($job)) {
-            return new WP_Error('image2url_job_forbidden', esc_html__('您没有权限执行该批量任务。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_job_forbidden', esc_html__('You do not have permission to run this batch job.', 'image2url-clipboard-booster'));
         }
         if (in_array($job['status'], ['completed', 'completed_with_errors'], true)) {
             return $job;
@@ -1212,7 +1212,7 @@ class Image2URL_Migrations
 
         $post_ids = $this->decode_job_post_ids($job);
         if (empty($post_ids)) {
-            $this->update_job((int) $job['id'], ['status' => 'failed', 'last_message' => esc_html__('任务中没有可处理的文章 ID。', 'image2url-clipboard-booster'), 'updated_at' => current_time('mysql'), 'completed_at' => current_time('mysql')]);
+            $this->update_job((int) $job['id'], ['status' => 'failed', 'last_message' => esc_html__('The job does not contain any valid post IDs to process.', 'image2url-clipboard-booster'), 'updated_at' => current_time('mysql'), 'completed_at' => current_time('mysql')]);
             return $this->get_job((int) $job['id']);
         }
 
@@ -1235,8 +1235,8 @@ class Image2URL_Migrations
             [
                 'status' => 'running',
                 'last_message' => 'validation' === $job_type
-                    ? esc_html__('后台正在验证当前批次。', 'image2url-clipboard-booster')
-                    : esc_html__('后台正在处理当前批次。', 'image2url-clipboard-booster'),
+                    ? esc_html__('The current validation batch is running in the background.', 'image2url-clipboard-booster')
+                    : esc_html__('The current rollback batch is running in the background.', 'image2url-clipboard-booster'),
                 'updated_at' => current_time('mysql'),
                 'completed_at' => null,
             ]
@@ -1250,7 +1250,7 @@ class Image2URL_Migrations
 
             if ($post_id <= 0) {
                 $failed_count++;
-                $message = esc_html__('任务中包含无效的文章 ID，已跳过。', 'image2url-clipboard-booster');
+                $message = esc_html__('The job contained an invalid post ID and it was skipped.', 'image2url-clipboard-booster');
                 $batch_messages[] = $message;
                 $last_message = $message;
                 continue;
@@ -1267,8 +1267,8 @@ class Image2URL_Migrations
                 }
                 $message = sprintf(
                     'validation' === $job_type
-                        ? esc_html__('文章 #%1$d 验证失败：%2$s', 'image2url-clipboard-booster')
-                        : esc_html__('文章 #%1$d 处理失败：%2$s', 'image2url-clipboard-booster'),
+                        ? esc_html__('Post #%1$d validation failed: %2$s', 'image2url-clipboard-booster')
+                        : esc_html__('Post #%1$d processing failed: %2$s', 'image2url-clipboard-booster'),
                     $post_id,
                     $result['error']
                 );
@@ -1283,13 +1283,13 @@ class Image2URL_Migrations
                 if (!empty($result['passed'])) {
                     $localized_count++;
                     $last_message = sprintf(
-                        esc_html__('文章 #%1$d 验证通过。', 'image2url-clipboard-booster'),
+                        esc_html__('Post #%1$d passed validation.', 'image2url-clipboard-booster'),
                         $post_id
                     );
                 } else {
                     $replaced_count += $issue_count;
                     $issue_summary = sprintf(
-                        esc_html__('文章 #%1$d 验证发现 %2$d 项问题。', 'image2url-clipboard-booster'),
+                        esc_html__('Post #%1$d validation found %2$d issues.', 'image2url-clipboard-booster'),
                         $post_id,
                         $issue_count
                     );
@@ -1302,7 +1302,7 @@ class Image2URL_Migrations
                         }
 
                         $batch_messages[] = sprintf(
-                            esc_html__('文章 #%1$d：%2$s', 'image2url-clipboard-booster'),
+                            esc_html__('Post #%1$d: %2$s', 'image2url-clipboard-booster'),
                             $post_id,
                             wp_strip_all_tags($issue)
                         );
@@ -1313,9 +1313,9 @@ class Image2URL_Migrations
                 $replaced_count += (int) ($result['replaced'] ?? 0);
                 if (!empty($result['failed'])) {
                     $failed_count += (int) $result['failed'];
-                    $batch_messages[] = sprintf(esc_html__('文章 #%1$d 已完成，但有 %2$d 项失败。', 'image2url-clipboard-booster'), $post_id, (int) $result['failed']);
+                    $batch_messages[] = sprintf(esc_html__('Post #%1$d completed with %2$d failures.', 'image2url-clipboard-booster'), $post_id, (int) $result['failed']);
                 }
-                $last_message = sprintf(esc_html__('文章 #%1$d 已处理，替换 %2$d 处。', 'image2url-clipboard-booster'), $post_id, (int) ($result['replaced'] ?? 0));
+                $last_message = sprintf(esc_html__('Post #%1$d processed with %2$d replacements.', 'image2url-clipboard-booster'), $post_id, (int) ($result['replaced'] ?? 0));
             }
         }
 
@@ -1327,12 +1327,12 @@ class Image2URL_Migrations
             $completed_at = current_time('mysql');
             if ('validation' === $job_type) {
                 $last_message = 'completed' === $status
-                    ? esc_html__('批量验证任务已完成，未发现问题。', 'image2url-clipboard-booster')
-                    : esc_html__('批量验证任务已完成，但发现问题或失败项。', 'image2url-clipboard-booster');
+                    ? esc_html__('The batch validation job completed without issues.', 'image2url-clipboard-booster')
+                    : esc_html__('The batch validation job completed with issues or failures.', 'image2url-clipboard-booster');
             } else {
                 $last_message = 'completed' === $status
-                    ? esc_html__('批量回退任务已完成。', 'image2url-clipboard-booster')
-                    : esc_html__('批量回退任务已完成，但存在失败项。', 'image2url-clipboard-booster');
+                    ? esc_html__('The batch rollback job completed successfully.', 'image2url-clipboard-booster')
+                    : esc_html__('The batch rollback job completed with failures.', 'image2url-clipboard-booster');
             }
         }
 
@@ -1412,24 +1412,24 @@ class Image2URL_Migrations
     private function get_job_type_label(string $job_type): string
     {
         return 'validation' === $this->normalize_job_type($job_type)
-            ? esc_html__('批量验证', 'image2url-clipboard-booster')
-            : esc_html__('批量回退', 'image2url-clipboard-booster');
+            ? esc_html__('Batch Validation', 'image2url-clipboard-booster')
+            : esc_html__('Batch Rollback', 'image2url-clipboard-booster');
     }
 
     private function get_job_metric_labels(string $job_type): array
     {
         if ('validation' === $this->normalize_job_type($job_type)) {
             return [
-                'primary' => esc_html__('通过文章', 'image2url-clipboard-booster'),
-                'secondary' => esc_html__('问题项', 'image2url-clipboard-booster'),
-                'failure' => esc_html__('失败文章', 'image2url-clipboard-booster'),
+                'primary' => esc_html__('Passed posts', 'image2url-clipboard-booster'),
+                'secondary' => esc_html__('Posts with issues', 'image2url-clipboard-booster'),
+                'failure' => esc_html__('Failed posts', 'image2url-clipboard-booster'),
             ];
         }
 
         return [
-            'primary' => esc_html__('下载到本地', 'image2url-clipboard-booster'),
-            'secondary' => esc_html__('内容替换', 'image2url-clipboard-booster'),
-            'failure' => esc_html__('失败', 'image2url-clipboard-booster'),
+            'primary' => esc_html__('Downloaded locally', 'image2url-clipboard-booster'),
+            'secondary' => esc_html__('Content replacements', 'image2url-clipboard-booster'),
+            'failure' => esc_html__('Failures', 'image2url-clipboard-booster'),
         ];
     }
 
@@ -1439,7 +1439,7 @@ class Image2URL_Migrations
 
         if ('validation' === $job_type) {
             return sprintf(
-                esc_html__('通过 %1$d / 问题 %2$d / 失败 %3$d', 'image2url-clipboard-booster'),
+                esc_html__('Passed %1$d / Issues %2$d / Failed %3$d', 'image2url-clipboard-booster'),
                 (int) ($job['localized_count'] ?? 0),
                 (int) ($job['replaced_count'] ?? 0),
                 (int) ($job['failed_count'] ?? 0)
@@ -1447,7 +1447,7 @@ class Image2URL_Migrations
         }
 
         return sprintf(
-            esc_html__('下载 %1$d / 替换 %2$d / 失败 %3$d', 'image2url-clipboard-booster'),
+            esc_html__('Downloaded %1$d / Replaced %2$d / Failed %3$d', 'image2url-clipboard-booster'),
             (int) ($job['localized_count'] ?? 0),
             (int) ($job['replaced_count'] ?? 0),
             (int) ($job['failed_count'] ?? 0)
@@ -1458,11 +1458,11 @@ class Image2URL_Migrations
     {
         switch ($result_status) {
             case 'passed':
-                return esc_html__('通过', 'image2url-clipboard-booster');
+                return esc_html__('Passed', 'image2url-clipboard-booster');
             case 'failed':
-                return esc_html__('执行失败', 'image2url-clipboard-booster');
+                return esc_html__('Failed', 'image2url-clipboard-booster');
             default:
-                return esc_html__('发现问题', 'image2url-clipboard-booster');
+                return esc_html__('Issues found', 'image2url-clipboard-booster');
         }
     }
 
@@ -1470,30 +1470,30 @@ class Image2URL_Migrations
     {
         switch ($issue_type) {
             case 'remaining_remote':
-                return esc_html__('正文残留外链', 'image2url-clipboard-booster');
+                return esc_html__('Remaining remote URLs in content', 'image2url-clipboard-booster');
             case 'missing_mapped_attachment':
-                return esc_html__('映射附件缺失', 'image2url-clipboard-booster');
+                return esc_html__('Mapped attachment missing', 'image2url-clipboard-booster');
             case 'missing_featured_attachment':
-                return esc_html__('特色图附件缺失', 'image2url-clipboard-booster');
+                return esc_html__('Featured image attachment missing', 'image2url-clipboard-booster');
             case 'missing_featured_image':
-                return esc_html__('缺少特色图', 'image2url-clipboard-booster');
+                return esc_html__('Featured image missing', 'image2url-clipboard-booster');
             case 'block_remote_image':
-                return esc_html__('区块仍用外链', 'image2url-clipboard-booster');
+                return esc_html__('Block still uses a remote image', 'image2url-clipboard-booster');
             case 'block_missing_attachment':
-                return esc_html__('区块附件缺失', 'image2url-clipboard-booster');
+                return esc_html__('Block attachment missing', 'image2url-clipboard-booster');
             case 'block_missing_attachment_id':
-                return esc_html__('区块缺少附件 ID', 'image2url-clipboard-booster');
+                return esc_html__('Block attachment ID missing', 'image2url-clipboard-booster');
             case 'block_unbound_mapping':
-                return esc_html__('区块未绑定映射', 'image2url-clipboard-booster');
+                return esc_html__('Block mapping not bound', 'image2url-clipboard-booster');
             default:
-                return esc_html__('其他问题', 'image2url-clipboard-booster');
+                return esc_html__('Other issues', 'image2url-clipboard-booster');
         }
     }
 
     private function format_validation_issue_types(array $issue_types): string
     {
         if (empty($issue_types)) {
-            return esc_html__('无异常', 'image2url-clipboard-booster');
+            return esc_html__('No issues', 'image2url-clipboard-booster');
         }
 
         $labels = [];
@@ -1509,29 +1509,29 @@ class Image2URL_Migrations
 
         return !empty($labels)
             ? implode(' / ', $labels)
-            : esc_html__('其他问题', 'image2url-clipboard-booster');
+            : esc_html__('Other issues', 'image2url-clipboard-booster');
     }
 
     private function get_validation_severity_label(string $severity): string
     {
         switch ($severity) {
             case 'critical':
-                return esc_html__('阻断', 'image2url-clipboard-booster');
+                return esc_html__('Critical', 'image2url-clipboard-booster');
             case 'high':
-                return esc_html__('高', 'image2url-clipboard-booster');
+                return esc_html__('High', 'image2url-clipboard-booster');
             case 'medium':
-                return esc_html__('中', 'image2url-clipboard-booster');
+                return esc_html__('Medium', 'image2url-clipboard-booster');
             case 'low':
-                return esc_html__('低', 'image2url-clipboard-booster');
+                return esc_html__('Low', 'image2url-clipboard-booster');
             default:
-                return esc_html__('通过', 'image2url-clipboard-booster');
+                return esc_html__('Passed', 'image2url-clipboard-booster');
         }
     }
 
     private function get_validation_post_type_label(string $post_type): string
     {
         if ('' === trim($post_type)) {
-            return esc_html__('未知', 'image2url-clipboard-booster');
+            return esc_html__('Unknown', 'image2url-clipboard-booster');
         }
 
         $post_type_object = get_post_type_object($post_type);
@@ -1544,22 +1544,22 @@ class Image2URL_Migrations
     private function get_validation_result_filter_options(): array
     {
         return [
-            'all' => esc_html__('全部', 'image2url-clipboard-booster'),
-            'issues' => esc_html__('仅问题', 'image2url-clipboard-booster'),
-            'failed' => esc_html__('仅失败', 'image2url-clipboard-booster'),
-            'passed' => esc_html__('仅通过', 'image2url-clipboard-booster'),
+            'all' => esc_html__('All', 'image2url-clipboard-booster'),
+            'issues' => esc_html__('Issues only', 'image2url-clipboard-booster'),
+            'failed' => esc_html__('Failed only', 'image2url-clipboard-booster'),
+            'passed' => esc_html__('Passed only', 'image2url-clipboard-booster'),
         ];
     }
 
     private function get_validation_severity_filter_options(): array
     {
         return [
-            'all' => esc_html__('全部', 'image2url-clipboard-booster'),
-            'critical' => esc_html__('阻断', 'image2url-clipboard-booster'),
-            'high' => esc_html__('高', 'image2url-clipboard-booster'),
-            'medium' => esc_html__('中', 'image2url-clipboard-booster'),
-            'low' => esc_html__('低', 'image2url-clipboard-booster'),
-            'none' => esc_html__('通过', 'image2url-clipboard-booster'),
+            'all' => esc_html__('All', 'image2url-clipboard-booster'),
+            'critical' => esc_html__('Critical', 'image2url-clipboard-booster'),
+            'high' => esc_html__('High', 'image2url-clipboard-booster'),
+            'medium' => esc_html__('Medium', 'image2url-clipboard-booster'),
+            'low' => esc_html__('Low', 'image2url-clipboard-booster'),
+            'none' => esc_html__('Passed', 'image2url-clipboard-booster'),
         ];
     }
 
@@ -1727,14 +1727,14 @@ class Image2URL_Migrations
     private function get_job_button_label(string $status): string
     {
         if (in_array($status, ['completed', 'completed_with_errors'], true)) {
-            return esc_html__('已完成', 'image2url-clipboard-booster');
+            return esc_html__('Completed', 'image2url-clipboard-booster');
         }
 
         if ('failed' === $status) {
-            return esc_html__('重新入队', 'image2url-clipboard-booster');
+            return esc_html__('Requeue', 'image2url-clipboard-booster');
         }
 
-        return 'running' === $status ? esc_html__('后台执行中', 'image2url-clipboard-booster') : esc_html__('开始执行', 'image2url-clipboard-booster');
+        return 'running' === $status ? esc_html__('Running in background', 'image2url-clipboard-booster') : esc_html__('Start', 'image2url-clipboard-booster');
     }
 
     private function build_job_export_link(int $job_id): string
@@ -1786,17 +1786,17 @@ class Image2URL_Migrations
     {
         $job = $this->get_job($job_id);
         if (!$job) {
-            add_settings_error('image2url_migration', 'image2url_export_missing', esc_html__('未找到可导出的验证任务。', 'image2url-clipboard-booster'), 'error');
+            add_settings_error('image2url_migration', 'image2url_export_missing', esc_html__('The requested validation job could not be found for export.', 'image2url-clipboard-booster'), 'error');
             return;
         }
 
         if (!$this->can_access_job($job)) {
-            add_settings_error('image2url_migration', 'image2url_export_forbidden', esc_html__('您没有权限导出这个验证任务。', 'image2url-clipboard-booster'), 'error');
+            add_settings_error('image2url_migration', 'image2url_export_forbidden', esc_html__('You do not have permission to export this validation job.', 'image2url-clipboard-booster'), 'error');
             return;
         }
 
         if ('validation' !== $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'))) {
-            add_settings_error('image2url_migration', 'image2url_export_invalid_type', esc_html__('只有批量验证任务支持导出 CSV。', 'image2url-clipboard-booster'), 'error');
+            add_settings_error('image2url_migration', 'image2url_export_invalid_type', esc_html__('Only batch validation jobs support CSV export.', 'image2url-clipboard-booster'), 'error');
             return;
         }
 
@@ -1812,7 +1812,7 @@ class Image2URL_Migrations
 
         $output = fopen('php://output', 'w');
         if (false === $output) {
-            wp_die(esc_html__('无法创建导出文件。', 'image2url-clipboard-booster'));
+            wp_die(esc_html__('The export file could not be created.', 'image2url-clipboard-booster'));
         }
 
         fwrite($output, "\xEF\xBB\xBF");
@@ -1972,16 +1972,16 @@ class Image2URL_Migrations
     private function validate_target_post(int $post_id, int $actor_user_id = 0)
     {
         if ($post_id <= 0) {
-            return new WP_Error('image2url_invalid_post', esc_html__('请输入有效的文章 ID。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_invalid_post', esc_html__('Enter a valid post ID.', 'image2url-clipboard-booster'));
         }
         $post = get_post($post_id);
         if (!$post || 'revision' === $post->post_type || 'attachment' === $post->post_type) {
-            return new WP_Error('image2url_post_not_found', esc_html__('未找到可处理的文章。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_post_not_found', esc_html__('No processable post could be found.', 'image2url-clipboard-booster'));
         }
 
         $can_edit = $actor_user_id > 0 ? user_can($actor_user_id, 'edit_post', $post_id) : current_user_can('edit_post', $post_id);
         if (!$can_edit) {
-            return new WP_Error('image2url_forbidden', esc_html__('您没有权限处理这篇文章。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_forbidden', esc_html__('You do not have permission to process this post.', 'image2url-clipboard-booster'));
         }
         return $post;
     }
@@ -2084,7 +2084,7 @@ class Image2URL_Migrations
     {
         $post = get_post($post_id);
         if (!$post) {
-            return new WP_Error('image2url_post_missing', esc_html__('文章不存在，无法替换内容。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_post_missing', esc_html__('The post does not exist, so its content cannot be replaced.', 'image2url-clipboard-booster'));
         }
 
         $original_content = (string) $post->post_content;
@@ -2625,7 +2625,7 @@ class Image2URL_Migrations
                 if ('' !== $remote_url && $this->is_external_image_url($remote_url)) {
                     $summary['issues']++;
                     $issues[] = sprintf(
-                        esc_html__('%1$s 仍使用远端图片：%2$s', 'image2url-clipboard-booster'),
+                        esc_html__('%1$s still uses a remote image: %2$s', 'image2url-clipboard-booster'),
                         $block_name,
                         $remote_url
                     );
@@ -2634,7 +2634,7 @@ class Image2URL_Migrations
                 if ($attachment_id > 0 && !get_post($attachment_id)) {
                     $summary['issues']++;
                     $issues[] = sprintf(
-                        esc_html__('%1$s 引用的本地附件不存在：#%2$d', 'image2url-clipboard-booster'),
+                        esc_html__('%1$s references a missing local attachment: #%2$d', 'image2url-clipboard-booster'),
                         $block_name,
                         $attachment_id
                     );
@@ -2643,7 +2643,7 @@ class Image2URL_Migrations
                 if (!$this->is_external_image_url($remote_url) && 0 === $attachment_id && '' !== $remote_url) {
                     $summary['issues']++;
                     $issues[] = sprintf(
-                        esc_html__('%1$s 已切到本地 URL，但缺少附件 ID。', 'image2url-clipboard-booster'),
+                        esc_html__('%1$s uses a local URL but has no attachment ID.', 'image2url-clipboard-booster'),
                         $block_name
                     );
                 }
@@ -2651,7 +2651,7 @@ class Image2URL_Migrations
                 if ('' !== $remote_url && isset($mapping_index[$remote_url]) && !empty($mapping_index[$remote_url]['local_attachment_id']) && 0 === $attachment_id) {
                     $summary['issues']++;
                     $issues[] = sprintf(
-                        esc_html__('%1$s 已有映射记录，但块属性还没绑定本地附件。', 'image2url-clipboard-booster'),
+                        esc_html__('%1$s has a mapping record but the block is not bound to the local attachment.', 'image2url-clipboard-booster'),
                         $block_name
                     );
                 }

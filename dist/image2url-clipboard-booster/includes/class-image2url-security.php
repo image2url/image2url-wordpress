@@ -65,31 +65,31 @@ class Image2URL_Security
         $url = trim((string) $url);
 
         if ('' === $url) {
-            throw new \InvalidArgumentException(esc_html__('无效的端点 URL。', 'image2url-clipboard-booster'));
+            throw new \InvalidArgumentException(esc_html__('Invalid endpoint URL.', 'image2url-clipboard-booster'));
         }
 
         $parsed = wp_parse_url($url);
         if (!$parsed || empty($parsed['scheme'])) {
-            throw new \InvalidArgumentException(esc_html__('端点 URL 格式不正确。', 'image2url-clipboard-booster'));
+            throw new \InvalidArgumentException(esc_html__('The endpoint URL format is invalid.', 'image2url-clipboard-booster'));
         }
 
         $scheme = strtolower((string) $parsed['scheme']);
         $allow_insecure_endpoint = (bool) apply_filters('image2url_allow_insecure_endpoint', false, $url, $parsed);
         if ('https' !== $scheme && !$allow_insecure_endpoint) {
-            throw new \InvalidArgumentException(esc_html__('端点 URL 必须使用 HTTPS 协议。', 'image2url-clipboard-booster'));
+            throw new \InvalidArgumentException(esc_html__('The endpoint URL must use HTTPS.', 'image2url-clipboard-booster'));
         }
 
         $allowed_protocols = $allow_insecure_endpoint ? ['http', 'https'] : ['https'];
         $sanitized_url = esc_url_raw($url, $allowed_protocols);
         if ('' === $sanitized_url || filter_var($sanitized_url, FILTER_VALIDATE_URL) === false) {
-            throw new \InvalidArgumentException(esc_html__('端点 URL 格式不正确。', 'image2url-clipboard-booster'));
+            throw new \InvalidArgumentException(esc_html__('The endpoint URL format is invalid.', 'image2url-clipboard-booster'));
         }
 
         $validated_url = wp_http_validate_url($sanitized_url);
         $allow_unsafe_endpoint = (bool) apply_filters('image2url_allow_unsafe_endpoint', false, $sanitized_url, $parsed);
         if (false === $validated_url && !$allow_unsafe_endpoint) {
             throw new \InvalidArgumentException(
-                esc_html__('端点 URL 必须是公开可访问的安全地址。', 'image2url-clipboard-booster')
+                esc_html__('The endpoint URL must be a public and safely reachable address.', 'image2url-clipboard-booster')
             );
         }
 
@@ -104,29 +104,29 @@ class Image2URL_Security
         $errors = [];
 
         if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-            $errors[] = esc_html__('无效的上传文件。', 'image2url-clipboard-booster');
+            $errors[] = esc_html__('Invalid uploaded file.', 'image2url-clipboard-booster');
             return $errors;
         }
 
         if ((int) ($file['size'] ?? 0) === 0) {
-            $errors[] = esc_html__('文件大小为 0。', 'image2url-clipboard-booster');
+            $errors[] = esc_html__('The file size is 0 bytes.', 'image2url-clipboard-booster');
         }
 
         $header = file_get_contents($file['tmp_name'], false, null, 0, 512);
         if (false === $header) {
-            $errors[] = esc_html__('无法读取上传文件。', 'image2url-clipboard-booster');
+            $errors[] = esc_html__('Unable to read the uploaded file.', 'image2url-clipboard-booster');
         } elseif (preg_match('/<\?(php|=)|<script|eval\s*\(/i', $header)) {
-            $errors[] = esc_html__('检测到潜在危险内容。', 'image2url-clipboard-booster');
+            $errors[] = esc_html__('Potentially dangerous content was detected.', 'image2url-clipboard-booster');
         }
 
         if (function_exists('getimagesize')) {
             $image_info = @getimagesize($file['tmp_name']);
             if (!$image_info) {
-                $errors[] = esc_html__('无法读取图片信息。', 'image2url-clipboard-booster');
+                $errors[] = esc_html__('Unable to read image metadata.', 'image2url-clipboard-booster');
             } else {
                 $max_dimension = 10000;
                 if ($image_info[0] > $max_dimension || $image_info[1] > $max_dimension) {
-                    $errors[] = esc_html__('图片尺寸过大。', 'image2url-clipboard-booster');
+                    $errors[] = esc_html__('The image dimensions are too large.', 'image2url-clipboard-booster');
                 }
             }
         }

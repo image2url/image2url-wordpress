@@ -86,7 +86,7 @@ pwsh -File tools/package-release.ps1
 svn checkout https://plugins.svn.wordpress.org/image2url-clipboard-booster/ image2url-clipboard-booster
 cd image2url-clipboard-booster
 cp -r /path/to/plugin/* trunk/
-cp -r /path/to/plugin/assets/* assets/
+cp -r /path/to/plugin/wporg-assets/* assets/
 svn add --force trunk/ assets/
 svn commit -m "Initial commit v0.1.0"
 svn copy trunk/ tags/0.1.0/

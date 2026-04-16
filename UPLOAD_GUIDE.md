@@ -29,6 +29,7 @@ image2url-clipboard-booster/
 ├── UPLOAD_GUIDE.md             # 本指南
 ├── assets/
 │  ├── js/editor-paste.js
+├── wporg-assets/
 │  ├── banner-772x250.png
 │  ├── banner-1544x500.png
 │  ├── icon-128x128.png
@@ -90,7 +91,7 @@ image2url-clipboard-booster/
 ```bash
 # 复制文件到 trunk 与 assets
 cp -r /path/to/image2url-wordpress/dist/image2url-clipboard-booster/* trunk/
-cp -r /path/to/image2url-wordpress/assets/* assets/
+cp -r /path/to/image2url-wordpress/wporg-assets/* assets/
 
 # 添加文件并提交
 svn add --force trunk/ assets/

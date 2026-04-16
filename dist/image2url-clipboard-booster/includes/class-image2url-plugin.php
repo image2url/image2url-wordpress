@@ -96,10 +96,10 @@ class Image2URL_Plugin
 
         add_settings_section(
             'image2url_general',
-            esc_html__('基础设置', 'image2url-clipboard-booster'),
+            esc_html__('General Settings', 'image2url-clipboard-booster'),
             static function () {
                 echo '<p>' . esc_html__(
-                    '配置上传端点、体积限制和编辑器行为。默认直传 image2url，不占用本地媒体库。',
+                    'Configure the upload endpoint, file size limit, and editor behavior. By default the plugin uploads to Image2URL and does not store the file in the local Media Library.',
                     'image2url-clipboard-booster'
                 ) . '</p>';
             },
@@ -108,7 +108,7 @@ class Image2URL_Plugin
 
         add_settings_field(
             'endpoint',
-            esc_html__('上传端点', 'image2url-clipboard-booster'),
+            esc_html__('Upload Endpoint', 'image2url-clipboard-booster'),
             [$this, 'render_endpoint_field'],
             'image2url',
             'image2url_general'
@@ -116,7 +116,7 @@ class Image2URL_Plugin
 
         add_settings_field(
             'max_size_mb',
-            esc_html__('体积限制 (MB)', 'image2url-clipboard-booster'),
+            esc_html__('Maximum File Size (MB)', 'image2url-clipboard-booster'),
             [$this, 'render_max_size_field'],
             'image2url',
             'image2url_general'
@@ -124,7 +124,7 @@ class Image2URL_Plugin
 
         add_settings_field(
             'enable_clipboard',
-            esc_html__('启用剪贴板直传', 'image2url-clipboard-booster'),
+            esc_html__('Enable Clipboard Uploads', 'image2url-clipboard-booster'),
             [$this, 'render_clipboard_field'],
             'image2url',
             'image2url_general'
@@ -138,12 +138,12 @@ class Image2URL_Plugin
         }
 
         $content = '<p>' . esc_html__(
-            'Image2URL Clipboard Booster 会在编辑器中粘贴图片时，把图片文件发送到你配置的远端上传端点。默认端点为 Image2URL，但站点管理员可以替换成自建的 HTTPS 上传服务。',
+            'Image2URL Clipboard Booster sends pasted image files to the remote upload endpoint configured in the plugin settings. The default endpoint uses Image2URL, but site administrators can replace it with their own HTTPS upload service.',
             'image2url-clipboard-booster'
         ) . '</p>';
 
         $content .= '<p>' . esc_html__(
-            '在使用默认服务时，远端服务会接收图片文件本身，以及请求中附带的文件名、MIME 类型、文件大小等上传元数据。和任何标准 HTTPS 请求一样，对方服务及其基础设施也可能看到你站点服务器的 IP、User-Agent 和时间戳等网络层信息。',
+            'When the default service is used, the remote service receives the image file itself plus upload metadata such as the filename, MIME type, and file size. As with any normal HTTPS request, the remote service and its infrastructure may also see the server IP, user agent, and request timestamp.',
             'image2url-clipboard-booster'
         ) . '</p>';
 
@@ -151,7 +151,7 @@ class Image2URL_Plugin
             sprintf(
                 /* translators: 1: service homepage URL, 2: terms URL, 3: privacy URL. */
                 __(
-                    '默认服务站点：<a href="%1$s" target="_blank" rel="noopener noreferrer">Image2URL</a>。使用前请阅读其<a href="%2$s" target="_blank" rel="noopener noreferrer">服务条款</a>和<a href="%3$s" target="_blank" rel="noopener noreferrer">隐私政策</a>。',
+                    'Default service: <a href="%1$s" target="_blank" rel="noopener noreferrer">Image2URL</a>. Please review its <a href="%2$s" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="%3$s" target="_blank" rel="noopener noreferrer">Privacy Policy</a> before using it.',
                     'image2url-clipboard-booster'
                 ),
                 esc_url($this->get_default_service_url()),
@@ -225,13 +225,13 @@ class Image2URL_Plugin
         <div class="wrap">
             <h1>Image2URL Clipboard Booster</h1>
             <?php settings_errors($this->option_key); ?>
-            <p><?php echo esc_html__('核心卖点：在 Gutenberg 里直接粘贴图片并上传到远端，降低共享主机 inode 和媒体库维护成本。', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('Paste images directly into the block editor, upload them to a remote image host, and reduce local Media Library and inode usage.', 'image2url-clipboard-booster'); ?></p>
             <p>
                 <?php echo wp_kses_post(
                     sprintf(
                         /* translators: 1: service homepage URL, 2: terms URL, 3: privacy URL. */
                         __(
-                            '默认上传服务为 <a href="%1$s" target="_blank" rel="noopener noreferrer">Image2URL</a>。无论你使用默认服务还是自定义上传端点，都应先确认远端服务的服务条款和隐私政策；默认服务文档见<a href="%2$s" target="_blank" rel="noopener noreferrer">服务条款</a>与<a href="%3$s" target="_blank" rel="noopener noreferrer">隐私政策</a>。',
+                            'The default upload service is <a href="%1$s" target="_blank" rel="noopener noreferrer">Image2URL</a>. Whether you use the default service or a custom endpoint, review the remote service documentation first. Default service documents: <a href="%2$s" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="%3$s" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.',
                             'image2url-clipboard-booster'
                         ),
                         esc_url($this->get_default_service_url()),
@@ -248,14 +248,14 @@ class Image2URL_Plugin
                 ?>
             </form>
             <hr>
-            <h2><?php echo esc_html__('运营建议', 'image2url-clipboard-booster'); ?></h2>
+            <h2><?php echo esc_html__('Operational Notes', 'image2url-clipboard-booster'); ?></h2>
             <ul style="list-style: disc; padding-left: 1.25rem;">
-                <li><?php echo esc_html__('保存设置前先验证端点，确保当前主机可以连通目标服务。', 'image2url-clipboard-booster'); ?></li>
-                <li><?php echo esc_html__('自定义上传端点建议使用公开可访问的 HTTPS 地址；开发环境如需放宽限制，请通过过滤器显式覆盖。', 'image2url-clipboard-booster'); ?></li>
-                <li><?php echo esc_html__('当前默认支持 JPEG、PNG、GIF、WebP。SVG 建议交给单独的安全管线处理。', 'image2url-clipboard-booster'); ?></li>
-                <li><?php echo esc_html__('如需把文章中的外链图片回退到本地媒体库，请前往 工具 -> Image2URL Migration。', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('Verify the endpoint before saving settings so you know the current site can reach the remote service.', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('Custom endpoints should use a public HTTPS URL. Development environments can relax this only through the documented filters.', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('JPEG, PNG, GIF, and WebP are allowed by default. SVG should be handled through a separate security review pipeline.', 'image2url-clipboard-booster'); ?></li>
+                <li><?php echo esc_html__('If you need to bring remote images back into the local Media Library, go to Tools > Image2URL Migration.', 'image2url-clipboard-booster'); ?></li>
             </ul>
-            <p><strong><?php echo esc_html__('支持格式：', 'image2url-clipboard-booster'); ?></strong><?php echo esc_html(implode(', ', $allowed_types)); ?></p>
+            <p><strong><?php echo esc_html__('Supported formats:', 'image2url-clipboard-booster'); ?></strong> <?php echo esc_html(implode(', ', $allowed_types)); ?></p>
         </div>
         <?php
     }
@@ -273,16 +273,16 @@ class Image2URL_Plugin
                 data-image2url-endpoint-field="true"
             />
             <button type="button" class="button" data-image2url-verify-endpoint="true">
-                <?php echo esc_html__('验证端点', 'image2url-clipboard-booster'); ?>
+                <?php echo esc_html__('Verify Endpoint', 'image2url-clipboard-booster'); ?>
             </button>
         </div>
-        <p class="description"><?php echo esc_html__('默认 https://www.image2url.com/api/upload。仅支持公开可访问的 HTTPS 上传端点，可替换为自建服务或自定义域。', 'image2url-clipboard-booster'); ?></p>
+        <p class="description"><?php echo esc_html__('Default: https://www.image2url.com/api/upload. Only public HTTPS upload endpoints are accepted by default. You can replace it with your own service or custom domain.', 'image2url-clipboard-booster'); ?></p>
         <p class="description">
             <?php echo wp_kses_post(
                 sprintf(
                     /* translators: 1: terms URL, 2: privacy URL. */
                     __(
-                        '默认服务文档：<a href="%1$s" target="_blank" rel="noopener noreferrer">服务条款</a> / <a href="%2$s" target="_blank" rel="noopener noreferrer">隐私政策</a>。',
+                        'Default service documents: <a href="%1$s" target="_blank" rel="noopener noreferrer">Terms of Service</a> / <a href="%2$s" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.',
                         'image2url-clipboard-booster'
                     ),
                     esc_url($this->get_service_terms_url()),
@@ -306,7 +306,7 @@ class Image2URL_Plugin
             name="<?php echo esc_attr($this->option_key); ?>[max_size_mb]"
             value="<?php echo esc_attr($options['max_size_mb']); ?>"
         />
-        <p class="description"><?php echo esc_html__('超过此体积将在本地阻断。建议与远端服务的单文件限制保持一致。', 'image2url-clipboard-booster'); ?></p>
+        <p class="description"><?php echo esc_html__('Files larger than this limit are blocked before upload. Match it to the remote service limit when possible.', 'image2url-clipboard-booster'); ?></p>
         <?php
     }
 
@@ -316,9 +316,9 @@ class Image2URL_Plugin
         ?>
         <label>
             <input type="checkbox" name="<?php echo esc_attr($this->option_key); ?>[enable_clipboard]" value="1" <?php checked($options['enable_clipboard'], 1); ?> />
-            <?php echo esc_html__('启用 Gutenberg 粘贴图片自动上云', 'image2url-clipboard-booster'); ?>
+            <?php echo esc_html__('Enable automatic remote upload for pasted images in the block editor', 'image2url-clipboard-booster'); ?>
         </label>
-        <p class="description"><?php echo esc_html__('拦截剪贴板中的图片文件，上传后直接插入外链图片块，不进入媒体库。', 'image2url-clipboard-booster'); ?></p>
+        <p class="description"><?php echo esc_html__('Intercept image files from the clipboard, upload them, and insert the returned remote image URL without creating a local attachment.', 'image2url-clipboard-booster'); ?></p>
         <?php
     }
 
@@ -343,9 +343,9 @@ class Image2URL_Plugin
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('image2url_verify_endpoint'),
                 'messages' => [
-                    'checking' => esc_html__('正在检测端点连通性...', 'image2url-clipboard-booster'),
-                    'invalid' => esc_html__('请输入有效的 HTTPS 端点 URL。', 'image2url-clipboard-booster'),
-                    'networkError' => esc_html__('端点检测失败，请检查网络或目标服务配置。', 'image2url-clipboard-booster'),
+                    'checking' => esc_html__('Checking endpoint reachability...', 'image2url-clipboard-booster'),
+                    'invalid' => esc_html__('Please enter a valid HTTPS endpoint URL.', 'image2url-clipboard-booster'),
+                    'networkError' => esc_html__('Endpoint verification failed. Check the network path and remote service configuration.', 'image2url-clipboard-booster'),
                 ],
             ]
         );
@@ -431,7 +431,7 @@ class Image2URL_Plugin
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!Image2URL_Security::verify_nonce_security($nonce, 'image2url_upload')) {
-            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('Security verification failed.', 'image2url-clipboard-booster')], 403);
         }
 
         if (!current_user_can('upload_files')) {
@@ -440,7 +440,7 @@ class Image2URL_Plugin
                 'User without upload_files permission attempted upload'
             );
 
-            wp_send_json_error(['message' => esc_html__('您没有权限上传文件。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('You do not have permission to upload files.', 'image2url-clipboard-booster')], 403);
         }
 
         if (!Image2URL_Security::check_rate_limit()) {
@@ -449,7 +449,7 @@ class Image2URL_Plugin
                 'User exceeded upload rate limit'
             );
 
-            wp_send_json_error(['message' => esc_html__('上传过于频繁，请稍后再试。', 'image2url-clipboard-booster')], 429);
+            wp_send_json_error(['message' => esc_html__('Upload rate limit reached. Please try again later.', 'image2url-clipboard-booster')], 429);
         }
 
         if (
@@ -458,7 +458,7 @@ class Image2URL_Plugin
             !isset($_FILES['file']['error'], $_FILES['file']['tmp_name'], $_FILES['file']['name'], $_FILES['file']['type'], $_FILES['file']['size']) ||
             (int) $_FILES['file']['error'] !== UPLOAD_ERR_OK
         ) {
-            wp_send_json_error(['message' => esc_html__('文件上传失败。', 'image2url-clipboard-booster')], 400);
+            wp_send_json_error(['message' => esc_html__('The file upload failed.', 'image2url-clipboard-booster')], 400);
         }
 
         $file = $_FILES['file'];
@@ -480,13 +480,13 @@ class Image2URL_Plugin
                 ['filename' => $file['name'], 'type' => $file['type']]
             );
 
-            wp_send_json_error(['message' => esc_html__('不支持的文件类型。', 'image2url-clipboard-booster')], 400);
+            wp_send_json_error(['message' => esc_html__('Unsupported file type.', 'image2url-clipboard-booster')], 400);
         }
 
         $options = $this->get_options();
         $max_bytes = (int) ($options['max_size_mb'] * 1024 * 1024);
         if ((int) $file['size'] > $max_bytes) {
-            wp_send_json_error(['message' => esc_html__('文件过大。', 'image2url-clipboard-booster')], 400);
+            wp_send_json_error(['message' => esc_html__('The file is too large.', 'image2url-clipboard-booster')], 400);
         }
 
         $this->upload_to_external_service($file);
@@ -520,7 +520,7 @@ class Image2URL_Plugin
             );
 
             wp_send_json_error(
-                ['message' => esc_html__('上传请求失败：', 'image2url-clipboard-booster') . $response->get_error_message()],
+                ['message' => esc_html__('Upload request failed: ', 'image2url-clipboard-booster') . $response->get_error_message()],
                 502
             );
         }
@@ -532,7 +532,7 @@ class Image2URL_Plugin
             wp_send_json_error(
                 ['message' => sprintf(
                     /* translators: %d is the remote HTTP status code. */
-                    esc_html__('上传失败，远端服务返回 HTTP %d。', 'image2url-clipboard-booster'),
+                    esc_html__('Upload failed. The remote service returned HTTP %d.', 'image2url-clipboard-booster'),
                     $http_code
                 )],
                 502
@@ -541,12 +541,12 @@ class Image2URL_Plugin
 
         $data = json_decode($body, true);
         if (!is_array($data)) {
-            wp_send_json_error(['message' => esc_html__('上传服务返回了无效 JSON。', 'image2url-clipboard-booster')], 502);
+            wp_send_json_error(['message' => esc_html__('The upload service returned invalid JSON.', 'image2url-clipboard-booster')], 502);
         }
 
         $remote_url = $this->extract_remote_url($data);
         if (!$remote_url) {
-            wp_send_json_error(['message' => esc_html__('上传服务响应中缺少图片 URL。', 'image2url-clipboard-booster')], 502);
+            wp_send_json_error(['message' => esc_html__('The upload service response did not include an image URL.', 'image2url-clipboard-booster')], 502);
         }
 
         $this->track_uploaded_remote_image($post_id, $remote_url);
@@ -595,7 +595,7 @@ class Image2URL_Plugin
     {
         $file_contents = file_get_contents($file['tmp_name']);
         if (false === $file_contents) {
-            return new WP_Error('image2url_read_failed', esc_html__('无法读取待上传文件。', 'image2url-clipboard-booster'));
+            return new WP_Error('image2url_read_failed', esc_html__('Unable to read the file that will be uploaded.', 'image2url-clipboard-booster'));
         }
 
         $boundary = 'image2url-' . wp_generate_password(12, false, false);
@@ -668,11 +668,11 @@ class Image2URL_Plugin
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!Image2URL_Security::verify_nonce_security($nonce, 'image2url_verify_endpoint')) {
-            wp_send_json_error(['message' => esc_html__('安全验证失败。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('Security verification failed.', 'image2url-clipboard-booster')], 403);
         }
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => esc_html__('您没有权限执行该操作。', 'image2url-clipboard-booster')], 403);
+            wp_send_json_error(['message' => esc_html__('You do not have permission to perform this action.', 'image2url-clipboard-booster')], 403);
         }
 
         try {
@@ -728,7 +728,7 @@ class Image2URL_Plugin
             return [
                 'success' => false,
                 'statusCode' => 0,
-                'message' => esc_html__('无法连通该端点：', 'image2url-clipboard-booster') . $response->get_error_message(),
+                'message' => esc_html__('Could not reach the endpoint: ', 'image2url-clipboard-booster') . $response->get_error_message(),
             ];
         }
 
@@ -739,7 +739,7 @@ class Image2URL_Plugin
                 'statusCode' => $status_code,
                 'message' => sprintf(
                     /* translators: %d is the remote HTTP status code. */
-                    esc_html__('端点可达，最近一次探测返回 HTTP %d。', 'image2url-clipboard-booster'),
+                    esc_html__('The endpoint is reachable. The last probe returned HTTP %d.', 'image2url-clipboard-booster'),
                     $status_code
                 ),
             ];
@@ -750,7 +750,7 @@ class Image2URL_Plugin
             'statusCode' => $status_code,
             'message' => sprintf(
                 /* translators: %d is the remote HTTP status code. */
-                esc_html__('端点返回异常状态：HTTP %d。', 'image2url-clipboard-booster'),
+                esc_html__('The endpoint returned an unexpected status: HTTP %d.', 'image2url-clipboard-booster'),
                 $status_code
             ),
         ];

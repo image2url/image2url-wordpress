@@ -3,7 +3,7 @@
 ## Plugin Information
 
 **Plugin Name:** Image2URL Clipboard Booster
-**Plugin URL:** https://github.com/your-username/image2url-wordpress
+**Plugin URL:** https://github.com/image2url/image2url-wordpress
 **Description:** Upload images to cloud services directly from clipboard in Gutenberg editor, reducing local storage usage and inode consumption on shared hosting.
 
 ---

@@ -27,13 +27,13 @@ Key differentiators: Real-time paste handling, zero local storage, enterprise se
 No external dependencies. Built entirely on WordPress core APIs: wp-blocks/wp-data/wp-element, wp-notices/wp-i18n/wp-a11y, Settings API + AJAX handlers, standard PHP + WordPress security functions.
 
 #### Does your plugin have any commercial affiliations?
-No commercial affiliations. GPLv2+ license.  
-Default endpoint (image2url.com) is optional and replaceable; supports self-hosted/custom endpoints; no vendor lock-in or data collection.
+Yes. The plugin is affiliated with the Image2URL service because it ships with Image2URL as the default upload endpoint.  
+However, the endpoint is optional and replaceable, the plugin works with self-hosted/custom HTTPS endpoints, and there is no code lock-in to the default service.
 
 ---
 
 ## 🚀 最新指南合规清单（基于 2025-02 Detailed Plugin Guidelines）
-- GPLv2 或更高；所有依赖 GPL 兼容；在主文件和 readme.txt 声明 License/License URI。
+- GPL 兼容许可证即可；所有依赖 GPL 兼容；在主文件和 readme.txt 声明 License/License URI。
 - 无混淆/加密/远程下载执行代码；不使用 eval/shell/dynamic include。
 - 默认不采集个人数据或遥测；如需数据收集，需在 readme 和设置中披露并可关闭。
 - 不滥用管理员权限、不劫持仪表盘、不强制外部服务、不展示过度 nag。
@@ -56,16 +56,11 @@ git push -u origin main
 2) 创建插件压缩包：
 ```powershell
 # Windows PowerShell
-Compress-Archive -Path image2url-wordpress.php, readme.txt, assets, includes `
-  -DestinationPath image2url-wordpress.zip -Force
+.\tools\package-release.ps1
 ```
 ```bash
-# macOS / Linux
-zip -r image2url-wordpress.zip \
-  image2url-wordpress.php \
-  readme.txt \
-  assets/ \
-  includes/
+# macOS / Linux（已安装 PowerShell）
+pwsh -File tools/package-release.ps1
 ```
 
 3) 本地测试：安装到本地站点，验证粘贴上传、设置页、错误处理、停用/卸载行为。

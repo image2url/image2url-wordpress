@@ -17,7 +17,7 @@
 > 未来规划（未实现）：本地+云端双备份、一键回退、本地/云端批量迁移、Markdown 粘贴增强（解析 data URI 转云端）。
 
 ## 安装
-1) 将 `dev/image2url-wordpress/` 拷贝或打包成 zip 安装到 WordPress 插件目录。  
+1) 运行 `tools/package-release.ps1` 生成干净的提审包，或将生成后的插件目录安装到 WordPress 插件目录。  
 2) 在后台启用插件，进入 `设置 -> Image2URL` 进行配置。
 
 ## 配置项
@@ -43,7 +43,7 @@
 - **安全收敛**：默认仅开放 JPEG、PNG、GIF、WebP，SVG 交给更严格的独立安全链路。
 
 ## 开发
-- 代码入口：`image2url-wordpress.php`  
+- 代码入口：`image2url-clipboard-booster.php`  
 - 设置逻辑：`includes/class-image2url-plugin.php`  
 - 前端粘贴脚本：`assets/js/editor-paste.js`  
 

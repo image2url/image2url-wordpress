@@ -21,8 +21,8 @@ sudo apt-get install subversion
 
 ### 3) 插件文件结构检查
 ```
-image2url-wordpress/
-├── image2url-wordpress.php     # 主插件文件
+image2url-clipboard-booster/
+├── image2url-clipboard-booster.php     # 主插件文件
 ├── readme.txt                  # WordPress.org 说明文件
 ├── README.md                   # 开发文档
 ├── SECURITY.md                 # 安全文档
@@ -39,7 +39,7 @@ image2url-wordpress/
 ```
 
 ## 提交前合规清单（基于 2025-02 Detailed Plugin Guidelines）
-- 许可证：GPLv2+，主文件和 readme.txt 均声明 License/License URI；所有依赖 GPL 兼容。
+- 许可证：GPL 兼容许可证即可；主文件和 readme.txt 均声明 License/License URI，且所有依赖都必须 GPL 兼容。
 - 代码安全：无混淆/加密/远程下载执行；不使用 eval/shell/dynamic include。
 - 数据与隐私：默认不收集个人数据或遥测；如有外部请求/日志，readme 与设置页须披露并可关闭。
 - 权限与体验：不滥用管理员权限，不强制连接外部服务，无误导性/过度 nag 通知。
@@ -52,16 +52,11 @@ image2url-wordpress/
 ## 打包插件
 ```powershell
 # Windows PowerShell（在插件根目录）
-Compress-Archive -Path image2url-wordpress.php, readme.txt, assets, includes `
-  -DestinationPath image2url-wordpress.zip -Force
+.\tools\package-release.ps1
 ```
 ```bash
-# macOS / Linux
-zip -r image2url-wordpress.zip \
-  image2url-wordpress.php \
-  readme.txt \
-  assets/ \
-  includes/
+# macOS / Linux（已安装 PowerShell）
+pwsh -File tools/package-release.ps1
 ```
 
 ## 提交插件审核
@@ -70,7 +65,7 @@ zip -r image2url-wordpress.zip \
    - Plugin Name: `Image2URL Clipboard Booster`  
    - Description: “Gutenberg 粘贴图片即上云，自动返回可长期访问的外链，减少本地存储与 inode 占用。”  
    - Plugin URL: 插件官网或 GitHub 仓库  
-   - 上传 `image2url-wordpress.zip`
+   - 上传 `dist/image2url-clipboard-booster.zip`
 3. 提交后等待审核分配（约 1-7 个工作日）
 
 ## 设置 SVN 仓库（审核通过后）
@@ -94,7 +89,7 @@ image2url-clipboard-booster/
 ## 上传插件文件到 SVN
 ```bash
 # 复制文件到 trunk 与 assets
-cp -r /path/to/image2url-wordpress/* trunk/
+cp -r /path/to/image2url-wordpress/dist/image2url-clipboard-booster/* trunk/
 cp -r /path/to/image2url-wordpress/assets/* assets/
 
 # 添加文件并提交

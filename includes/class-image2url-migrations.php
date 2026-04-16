@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 class Image2URL_Migrations
 {
-    const TABLE_VERSION = '1.1.0';
+    const TABLE_VERSION = '1.3.0';
     const DEFAULT_BATCH_SIZE = 2;
     const CRON_HOOK = 'image2url_migration_process_job';
     const JOB_LOCK_TTL = 300;
@@ -84,7 +84,7 @@ class Image2URL_Migrations
                 'currentJobStatus' => !empty($job['status']) ? $job['status'] : '',
                 'pollInterval' => 3000,
                 'messages' => [
-                    'running' => esc_html__('后台正在执行批量回退...', 'image2url-clipboard-booster'),
+                    'running' => esc_html__('后台正在执行批量任务...', 'image2url-clipboard-booster'),
                     'idle' => esc_html__('等待开始。', 'image2url-clipboard-booster'),
                     'completed' => esc_html__('任务已完成。', 'image2url-clipboard-booster'),
                     'completedWithErrors' => esc_html__('任务已完成，但存在失败项。', 'image2url-clipboard-booster'),
@@ -139,13 +139,13 @@ class Image2URL_Migrations
             <?php $this->render_query_notice(); ?>
             <?php if (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) : ?>
                 <div class="notice notice-warning inline">
-                    <p><?php echo esc_html__('检测到站点已禁用 WP-Cron。若未在服务器侧单独触发 wp-cron.php，批量回退任务将无法自动推进。', 'image2url-clipboard-booster'); ?></p>
+                    <p><?php echo esc_html__('检测到站点已禁用 WP-Cron。若未在服务器侧单独触发 wp-cron.php，批量任务将无法自动推进。', 'image2url-clipboard-booster'); ?></p>
                 </div>
             <?php endif; ?>
 
-            <p><?php echo esc_html__('这个页面用于把文章里的外链图片下载到 WordPress 媒体库，并将内容中的外链替换为本地 URL。', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('这个页面用于把文章里的外链图片下载到 WordPress 媒体库、将内容中的外链替换为本地 URL，并验证回退结果。', 'image2url-clipboard-booster'); ?></p>
             <p><?php echo esc_html__('回退时会优先把 core/image、core/cover 和 core/media-text 区块同步为本地附件引用；如果文章还没有特色图，会尝试将正文首张已本地化图片设为特色图。', 'image2url-clipboard-booster'); ?></p>
-            <p><?php echo esc_html__('单篇模式适合即时回退；批量模式会创建后台任务，由 WP-Cron 按批次逐篇处理，不依赖当前页面持续打开。', 'image2url-clipboard-booster'); ?></p>
+            <p><?php echo esc_html__('单篇模式适合即时回退和验证；批量模式会创建后台任务，由 WP-Cron 按批次逐篇处理，不依赖当前页面持续打开。', 'image2url-clipboard-booster'); ?></p>
 
             <h2><?php echo esc_html__('状态概览', 'image2url-clipboard-booster'); ?></h2>
             <table class="widefat striped" style="max-width: 760px;">
@@ -199,6 +199,24 @@ class Image2URL_Migrations
                 <?php submit_button(__('创建批量回退任务', 'image2url-clipboard-booster'), 'primary', 'submit', false); ?>
             </form>
 
+            <h2><?php echo esc_html__('批量验证队列', 'image2url-clipboard-booster'); ?></h2>
+            <form method="post" style="margin-bottom: 24px;">
+                <?php wp_nonce_field('image2url_migration_action', 'image2url_migration_nonce'); ?>
+                <input type="hidden" name="image2url_migration_action" value="queue_validation_job" />
+                <p>
+                    <label for="image2url-validation-post-ids"><strong><?php echo esc_html__('文章 ID 列表', 'image2url-clipboard-booster'); ?></strong></label><br />
+                    <textarea id="image2url-validation-post-ids" name="post_ids" rows="4" cols="70" placeholder="12, 35, 48"></textarea>
+                </p>
+                <p>
+                    <label>
+                        <input type="checkbox" name="audit_all_posts" value="1" />
+                        <?php echo esc_html__('审计当前可访问的全部已发布文章', 'image2url-clipboard-booster'); ?>
+                    </label>
+                </p>
+                <p class="description"><?php echo esc_html__('可输入指定文章 ID，也可以直接做全站审计。验证任务会检查残留外链、块附件绑定和特色图状态。', 'image2url-clipboard-booster'); ?></p>
+                <?php submit_button(__('创建批量验证任务', 'image2url-clipboard-booster'), 'secondary', 'submit', false); ?>
+            </form>
+
             <?php if (!empty($current_job)) : ?>
                 <?php $this->render_current_job_panel($current_job); ?>
             <?php endif; ?>
@@ -212,23 +230,27 @@ class Image2URL_Migrations
                     <thead>
                         <tr>
                             <th><?php echo esc_html__('任务', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('类型', 'image2url-clipboard-booster'); ?></th>
                             <th><?php echo esc_html__('状态', 'image2url-clipboard-booster'); ?></th>
                             <th><?php echo esc_html__('进度', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('下载', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('替换', 'image2url-clipboard-booster'); ?></th>
-                            <th><?php echo esc_html__('失败', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('结果摘要', 'image2url-clipboard-booster'); ?></th>
                             <th><?php echo esc_html__('更新时间', 'image2url-clipboard-booster'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($recent_jobs as $job) : ?>
                             <tr>
-                                <td><a href="<?php echo esc_url($this->build_job_link((int) $job['id'])); ?>">#<?php echo esc_html((string) $job['id']); ?></a></td>
+                                <td>
+                                    <a href="<?php echo esc_url($this->build_job_link((int) $job['id'])); ?>">#<?php echo esc_html((string) $job['id']); ?></a>
+                                    <?php if ('validation' === $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'))) : ?>
+                                        <br />
+                                        <a href="<?php echo esc_url($this->build_job_export_link((int) $job['id'])); ?>" class="button-link"><?php echo esc_html__('导出 CSV', 'image2url-clipboard-booster'); ?></a>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html($this->get_job_type_label((string) ($job['job_type'] ?? 'rollback'))); ?></td>
                                 <td><?php echo esc_html($job['status']); ?></td>
                                 <td><?php echo esc_html((string) $job['processed_posts']); ?>/<?php echo esc_html((string) $job['total_posts']); ?></td>
-                                <td><?php echo esc_html((string) $job['localized_count']); ?></td>
-                                <td><?php echo esc_html((string) $job['replaced_count']); ?></td>
-                                <td><?php echo esc_html((string) $job['failed_count']); ?></td>
+                                <td><?php echo esc_html($this->get_job_results_summary($job)); ?></td>
                                 <td><?php echo esc_html($job['updated_at']); ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -357,6 +379,85 @@ class Image2URL_Migrations
         return ['post_id' => $post_id, 'post_title' => get_the_title($post_id), 'found' => $scan_result['found'], 'localized' => $localized, 'replaced' => $replaced, 'synced_blocks' => $synced_blocks, 'featured_image_set' => $featured_image_set, 'failed' => count($errors), 'errors' => $errors];
     }
 
+    public function validate_post_localization(int $post_id, int $actor_user_id = 0): array
+    {
+        $post = $this->validate_target_post($post_id, $actor_user_id);
+        if (is_wp_error($post)) {
+            return ['error' => $post->get_error_message()];
+        }
+
+        $content = (string) $post->post_content;
+        $mappings = $this->get_post_mappings($post_id);
+        $remaining_remote_urls = $this->extract_remote_image_urls($content);
+        $issues = [];
+        $block_summary = [
+            'checked' => 0,
+            'issues' => 0,
+        ];
+
+        $mapping_index = [];
+        $localized_mappings = 0;
+        foreach ($mappings as $mapping) {
+            if (empty($mapping['remote_url']) || !is_string($mapping['remote_url'])) {
+                continue;
+            }
+
+            $remote_url = (string) $mapping['remote_url'];
+            $mapping_index[$remote_url] = $mapping;
+
+            $attachment_id = !empty($mapping['local_attachment_id']) ? absint($mapping['local_attachment_id']) : 0;
+            $has_valid_attachment = $attachment_id > 0 && get_post($attachment_id);
+            if ($has_valid_attachment) {
+                $localized_mappings++;
+            }
+
+            if (in_array($remote_url, $remaining_remote_urls, true)) {
+                $issues[] = sprintf(
+                    esc_html__('正文仍引用远端图片：%s', 'image2url-clipboard-booster'),
+                    $remote_url
+                );
+            }
+
+            if ($attachment_id > 0 && !$has_valid_attachment) {
+                $issues[] = sprintf(
+                    esc_html__('映射记录指向的本地附件不存在：%1$s -> #%2$d', 'image2url-clipboard-booster'),
+                    $remote_url,
+                    $attachment_id
+                );
+            }
+        }
+
+        if (function_exists('has_blocks') && function_exists('parse_blocks') && has_blocks($content)) {
+            $blocks = parse_blocks($content);
+            if (is_array($blocks)) {
+                $this->collect_block_validation_issues($blocks, $mapping_index, $issues, $block_summary);
+            }
+        }
+
+        $featured_image_id = has_post_thumbnail($post_id) ? (int) get_post_thumbnail_id($post_id) : 0;
+        if ($featured_image_id > 0 && !get_post($featured_image_id)) {
+            $issues[] = sprintf(
+                esc_html__('特色图引用的附件不存在：#%d', 'image2url-clipboard-booster'),
+                $featured_image_id
+            );
+        } elseif (0 === $featured_image_id && $localized_mappings > 0 && post_type_supports((string) get_post_type($post_id), 'thumbnail')) {
+            $issues[] = esc_html__('文章没有特色图，但已有可用的本地化图片。', 'image2url-clipboard-booster');
+        }
+
+        return [
+            'post_id' => $post_id,
+            'post_title' => get_the_title($post_id),
+            'mapping_total' => count($mappings),
+            'localized_mappings' => $localized_mappings,
+            'remaining_remote_urls' => $remaining_remote_urls,
+            'checked_blocks' => (int) $block_summary['checked'],
+            'block_issues' => (int) $block_summary['issues'],
+            'featured_image_id' => $featured_image_id,
+            'issues' => array_values(array_unique(array_filter($issues))),
+            'passed' => empty($issues),
+        ];
+    }
+
     public function handle_ajax_process_job(): void
     {
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
@@ -432,6 +533,14 @@ class Image2URL_Migrations
 
     private function handle_tools_action(): void
     {
+        $get_action = isset($_GET['image2url_migration_action']) ? sanitize_key(wp_unslash($_GET['image2url_migration_action'])) : '';
+        if ('export_job_report' === $get_action) {
+            $job_id = isset($_GET['job_id']) ? absint(wp_unslash($_GET['job_id'])) : 0;
+            check_admin_referer('image2url_export_job_report_' . $job_id);
+            $this->export_validation_job_report($job_id);
+            return;
+        }
+
         $requested_job_id = isset($_GET['job_id']) ? absint(wp_unslash($_GET['job_id'])) : 0;
         if ($requested_job_id > 0) {
             $requested_job = $this->get_job($requested_job_id);
@@ -478,13 +587,34 @@ class Image2URL_Migrations
                 add_settings_error('image2url_migration', 'image2url_rollback_success', $message, 'updated');
                 return;
 
+            case 'validate_post':
+                $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+                $result = $this->validate_post_localization($post_id);
+                if (!empty($result['error'])) {
+                    add_settings_error('image2url_migration', 'image2url_validate_error', $result['error'], 'error');
+                    return;
+                }
+
+                $this->last_validation_report = $result;
+                $summary = sprintf(
+                    esc_html__('文章“%1$s”验证完成：映射 %2$d 条，已本地化 %3$d 条，残留外链 %4$d 条，检测区块 %5$d 个，问题 %6$d 项。', 'image2url-clipboard-booster'),
+                    $result['post_title'] ?: '#' . $post_id,
+                    (int) $result['mapping_total'],
+                    (int) $result['localized_mappings'],
+                    count($result['remaining_remote_urls']),
+                    (int) $result['checked_blocks'],
+                    count($result['issues'])
+                );
+                add_settings_error('image2url_migration', 'image2url_validate_result', $summary, !empty($result['passed']) ? 'updated' : 'error');
+                return;
+
             case 'queue_batch_job':
                 $post_ids = $this->parse_post_ids(isset($_POST['post_ids']) ? wp_unslash($_POST['post_ids']) : '');
                 if (empty($post_ids)) {
                     add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('请至少输入一个有效的文章 ID。', 'image2url-clipboard-booster'), 'error');
                     return;
                 }
-                $job_id = $this->create_batch_job($post_ids);
+                $job_id = $this->create_batch_job($post_ids, 'rollback');
                 if ($job_id <= 0) {
                     add_settings_error('image2url_migration', 'image2url_batch_error', esc_html__('创建批量任务失败，请稍后重试。', 'image2url-clipboard-booster'), 'error');
                     return;
@@ -496,6 +626,32 @@ class Image2URL_Migrations
                 }
                 wp_safe_redirect(add_query_arg(['page' => 'image2url-migration', 'job_id' => $job_id, 'image2url_notice' => 'batch_job_created'], admin_url('tools.php')));
                 exit;
+
+            case 'queue_validation_job':
+                $audit_all_posts = !empty($_POST['audit_all_posts']);
+                $post_ids = $audit_all_posts
+                    ? $this->get_all_auditable_post_ids()
+                    : $this->parse_post_ids(isset($_POST['post_ids']) ? wp_unslash($_POST['post_ids']) : '');
+
+                if (empty($post_ids)) {
+                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('请至少输入一个有效的文章 ID，或选择全站审计。', 'image2url-clipboard-booster'), 'error');
+                    return;
+                }
+
+                $job_id = $this->create_batch_job($post_ids, 'validation');
+                if ($job_id <= 0) {
+                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', esc_html__('创建批量验证任务失败，请稍后重试。', 'image2url-clipboard-booster'), 'error');
+                    return;
+                }
+
+                $queue_result = $this->queue_job_for_background($job_id);
+                if (is_wp_error($queue_result)) {
+                    add_settings_error('image2url_migration', 'image2url_validation_batch_error', $queue_result->get_error_message(), 'error');
+                    return;
+                }
+
+                wp_safe_redirect(add_query_arg(['page' => 'image2url-migration', 'job_id' => $job_id, 'image2url_notice' => 'batch_job_created'], admin_url('tools.php')));
+                exit;
         }
     }
 
@@ -505,9 +661,12 @@ class Image2URL_Migrations
         if ('batch_job_created' !== $notice || $this->current_job_id <= 0) {
             return;
         }
+
+        $current_job = $this->get_current_job();
+        $job_label = $this->get_job_type_label((string) ($current_job['job_type'] ?? 'rollback'));
         ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php echo esc_html(sprintf(__('批量回退任务 #%d 已创建，并已加入后台队列。页面会自动刷新状态。', 'image2url-clipboard-booster'), $this->current_job_id)); ?></p>
+            <p><?php echo esc_html(sprintf(__('%1$s #%2$d 已创建，并已加入后台队列。页面会自动刷新状态。', 'image2url-clipboard-booster'), $job_label, $this->current_job_id)); ?></p>
         </div>
         <?php
     }
@@ -515,23 +674,167 @@ class Image2URL_Migrations
     private function render_current_job_panel(array $job): void
     {
         $job_view = $this->format_job_for_response($job);
+        $metric_labels = $this->get_job_metric_labels((string) ($job_view['jobType'] ?? 'rollback'));
+        $is_validation_job = 'validation' === $this->normalize_job_type((string) ($job_view['jobType'] ?? 'rollback'));
         ?>
         <hr>
         <h2><?php echo esc_html__('当前任务', 'image2url-clipboard-booster'); ?></h2>
         <div data-image2url-job-panel="true" data-job-id="<?php echo esc_attr((string) $job_view['id']); ?>" data-job-status="<?php echo esc_attr($job_view['status']); ?>" style="border:1px solid #dcdcde; background:#fff; padding:16px; max-width:900px;">
-            <p><strong><?php echo esc_html__('任务 #', 'image2url-clipboard-booster') . esc_html((string) $job_view['id']); ?></strong> <span style="margin-left:12px;"><?php echo esc_html__('状态：', 'image2url-clipboard-booster'); ?><span data-image2url-job-status-label="true"><?php echo esc_html($job_view['status']); ?></span></span></p>
+            <p><strong><?php echo esc_html__('任务 #', 'image2url-clipboard-booster') . esc_html((string) $job_view['id']); ?></strong> <span style="margin-left:12px;"><?php echo esc_html__('类型：', 'image2url-clipboard-booster'); ?><?php echo esc_html($this->get_job_type_label((string) ($job_view['jobType'] ?? 'rollback'))); ?></span> <span style="margin-left:12px;"><?php echo esc_html__('状态：', 'image2url-clipboard-booster'); ?><span data-image2url-job-status-label="true"><?php echo esc_html($job_view['status']); ?></span></span></p>
             <p data-image2url-job-message="true"><?php echo esc_html($job_view['lastMessage']); ?></p>
             <table class="widefat striped" style="max-width:760px; margin-bottom:12px;">
                 <tbody>
                     <tr><th><?php echo esc_html__('进度', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-progress="true"><?php echo esc_html((string) $job_view['processedPosts']); ?>/<?php echo esc_html((string) $job_view['totalPosts']); ?></span></td></tr>
-                    <tr><th><?php echo esc_html__('下载到本地', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-localized="true"><?php echo esc_html((string) $job_view['localizedCount']); ?></span></td></tr>
-                    <tr><th><?php echo esc_html__('内容替换', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-replaced="true"><?php echo esc_html((string) $job_view['replacedCount']); ?></span></td></tr>
-                    <tr><th><?php echo esc_html__('失败', 'image2url-clipboard-booster'); ?></th><td><span data-image2url-job-failed="true"><?php echo esc_html((string) $job_view['failedCount']); ?></span></td></tr>
+                    <tr><th><?php echo esc_html($metric_labels['primary']); ?></th><td><span data-image2url-job-localized="true"><?php echo esc_html((string) $job_view['localizedCount']); ?></span></td></tr>
+                    <tr><th><?php echo esc_html($metric_labels['secondary']); ?></th><td><span data-image2url-job-replaced="true"><?php echo esc_html((string) $job_view['replacedCount']); ?></span></td></tr>
+                    <tr><th><?php echo esc_html($metric_labels['failure']); ?></th><td><span data-image2url-job-failed="true"><?php echo esc_html((string) $job_view['failedCount']); ?></span></td></tr>
                 </tbody>
             </table>
-            <p><button type="button" class="button button-primary" data-image2url-run-job="true"><?php echo esc_html($this->get_job_button_label($job_view['status'])); ?></button></p>
+            <p>
+                <button type="button" class="button button-primary" data-image2url-run-job="true"><?php echo esc_html($this->get_job_button_label($job_view['status'])); ?></button>
+                <?php if ($is_validation_job) : ?>
+                    <a href="<?php echo esc_url($this->build_job_export_link((int) $job_view['id'])); ?>" class="button button-secondary" style="margin-left:8px;"><?php echo esc_html__('导出 CSV', 'image2url-clipboard-booster'); ?></a>
+                <?php endif; ?>
+            </p>
             <p><strong><?php echo esc_html__('最近日志', 'image2url-clipboard-booster'); ?></strong></p>
             <pre data-image2url-job-log="true" style="background:#f6f7f7; border:1px solid #dcdcde; padding:12px; max-height:220px; overflow:auto; white-space:pre-wrap;"><?php echo esc_html($job_view['errorLog']); ?></pre>
+            <?php if ($is_validation_job) : ?>
+                <?php $this->render_validation_job_report_preview($job); ?>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    private function render_validation_report(array $report): void
+    {
+        ?>
+        <div style="border:1px solid #dcdcde; background:#fff; padding:16px; max-width:900px; margin-bottom:24px;">
+            <h3 style="margin-top:0;"><?php echo esc_html__('回退验证结果', 'image2url-clipboard-booster'); ?></h3>
+            <table class="widefat striped" style="max-width:760px; margin-bottom:12px;">
+                <tbody>
+                    <tr><th><?php echo esc_html__('文章', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html($report['post_title'] ?: '#' . (int) $report['post_id']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('映射总数', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['mapping_total']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('有效本地化映射', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['localized_mappings']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('残留远端图片', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) count($report['remaining_remote_urls'])); ?></td></tr>
+                    <tr><th><?php echo esc_html__('已检查媒体块', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['checked_blocks']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('块级问题', 'image2url-clipboard-booster'); ?></th><td><?php echo esc_html((string) $report['block_issues']); ?></td></tr>
+                    <tr><th><?php echo esc_html__('特色图', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['featured_image_id']) ? esc_html('#' . (int) $report['featured_image_id']) : esc_html__('未设置', 'image2url-clipboard-booster'); ?></td></tr>
+                    <tr><th><?php echo esc_html__('结果', 'image2url-clipboard-booster'); ?></th><td><?php echo !empty($report['passed']) ? esc_html__('通过', 'image2url-clipboard-booster') : esc_html__('发现问题', 'image2url-clipboard-booster'); ?></td></tr>
+                </tbody>
+            </table>
+
+            <?php if (empty($report['issues'])) : ?>
+                <p><?php echo esc_html__('没有发现明显的回退残留或块引用问题。', 'image2url-clipboard-booster'); ?></p>
+            <?php else : ?>
+                <p><strong><?php echo esc_html__('问题明细', 'image2url-clipboard-booster'); ?></strong></p>
+                <ul style="list-style:disc; padding-left:20px;">
+                    <?php foreach ($report['issues'] as $issue) : ?>
+                        <li><?php echo esc_html($issue); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    private function render_validation_job_report_preview(array $job): void
+    {
+        $entries = $this->get_job_report_entries($job);
+        $filters = $this->get_validation_report_filters();
+        $summary = $this->summarize_validation_report_entries($entries);
+        $filtered_entries = $this->filter_validation_report_entries($entries, $filters['result_status'], $filters['issue_type'], $filters['severity'], $filters['post_type']);
+        $ordered_entries = ('all' === $filters['result_status'] && 'all' === $filters['issue_type'] && 'all' === $filters['severity'] && 'all' === $filters['post_type'])
+            ? $this->prioritize_validation_report_entries($filtered_entries)
+            : $filtered_entries;
+        $preview_entries = array_slice($ordered_entries, 0, 20);
+        $job_id = (int) ($job['id'] ?? 0);
+        ?>
+        <div style="margin-top:16px;">
+            <p><strong><?php echo esc_html__('验证报告预览', 'image2url-clipboard-booster'); ?></strong></p>
+            <?php if (empty($entries)) : ?>
+                <p><?php echo esc_html__('当前还没有可导出的验证结果。任务至少处理一篇文章后，就可以下载 CSV。', 'image2url-clipboard-booster'); ?></p>
+            <?php else : ?>
+                <p class="description"><?php echo esc_html(sprintf(__('已记录 %d 篇文章的验证结果。默认会优先展示有问题的条目；完整结果请使用上方筛选或 CSV 导出。', 'image2url-clipboard-booster'), count($entries))); ?></p>
+                <p>
+                    <strong><?php echo esc_html__('结果筛选：', 'image2url-clipboard-booster'); ?></strong>
+                    <?php foreach ($this->get_validation_result_filter_options() as $result_key => $label) : ?>
+                        <?php $is_active = $filters['result_status'] === $result_key; ?>
+                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_result' => $result_key])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($label); ?><?php if (isset($summary['result_counts'][$result_key])) : ?> (<?php echo esc_html((string) $summary['result_counts'][$result_key]); ?>)<?php endif; ?></a>
+                    <?php endforeach; ?>
+                </p>
+                <?php if (!empty($summary['severity_counts'])) : ?>
+                    <p>
+                        <strong><?php echo esc_html__('严重度：', 'image2url-clipboard-booster'); ?></strong>
+                        <?php foreach ($this->get_validation_severity_filter_options() as $severity_key => $label) : ?>
+                            <?php $is_active = $filters['severity'] === $severity_key; ?>
+                            <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_severity' => $severity_key])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($label); ?><?php if (isset($summary['severity_counts'][$severity_key])) : ?> (<?php echo esc_html((string) $summary['severity_counts'][$severity_key]); ?>)<?php endif; ?></a>
+                        <?php endforeach; ?>
+                    </p>
+                <?php endif; ?>
+                <?php if (!empty($summary['post_type_counts'])) : ?>
+                    <p>
+                        <strong><?php echo esc_html__('文章类型：', 'image2url-clipboard-booster'); ?></strong>
+                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_post_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['post_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('全部类型', 'image2url-clipboard-booster'); ?></a>
+                        <?php foreach ($summary['post_type_counts'] as $post_type => $count) : ?>
+                            <?php $is_active = $filters['post_type'] === $post_type; ?>
+                            <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_post_type' => $post_type])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($this->get_validation_post_type_label((string) $post_type)); ?> (<?php echo esc_html((string) $count); ?>)</a>
+                        <?php endforeach; ?>
+                    </p>
+                <?php endif; ?>
+                <?php if (!empty($summary['issue_type_counts'])) : ?>
+                    <p>
+                        <strong><?php echo esc_html__('问题类型：', 'image2url-clipboard-booster'); ?></strong>
+                        <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_issue_type' => 'all'])); ?>" class="<?php echo 'all' === $filters['issue_type'] ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html__('全部问题', 'image2url-clipboard-booster'); ?></a>
+                        <?php foreach ($summary['issue_type_counts'] as $issue_type => $count) : ?>
+                            <?php $is_active = $filters['issue_type'] === $issue_type; ?>
+                            <a href="<?php echo esc_url($this->build_validation_report_filter_link($job_id, ['image2url_validation_issue_type' => $issue_type])); ?>" class="<?php echo $is_active ? 'button button-primary' : 'button'; ?>" style="margin:0 6px 6px 0;"><?php echo esc_html($this->get_validation_issue_type_label((string) $issue_type)); ?> (<?php echo esc_html((string) $count); ?>)</a>
+                        <?php endforeach; ?>
+                    </p>
+                <?php endif; ?>
+                <table class="widefat striped" style="max-width:860px; margin-bottom:12px;">
+                    <thead>
+                        <tr>
+                            <th><?php echo esc_html__('文章', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('文章类型', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('结果', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('严重度', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('问题类型', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('问题数', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('摘要', 'image2url-clipboard-booster'); ?></th>
+                            <th><?php echo esc_html__('检查时间', 'image2url-clipboard-booster'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($preview_entries)) : ?>
+                            <tr>
+                                <td colspan="8"><?php echo esc_html__('当前筛选条件下没有匹配结果。', 'image2url-clipboard-booster'); ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($preview_entries as $entry) : ?>
+                            <?php $edit_link = !empty($entry['post_id']) ? get_edit_post_link((int) $entry['post_id']) : false; ?>
+                            <tr>
+                                <td>
+                                    <?php if (!empty($edit_link)) : ?>
+                                        <a href="<?php echo esc_url($edit_link); ?>"><?php echo esc_html($entry['post_title'] ?: '#' . (int) $entry['post_id']); ?></a>
+                                    <?php else : ?>
+                                        <?php echo esc_html($entry['post_title'] ?: '#' . (int) $entry['post_id']); ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html($this->get_validation_post_type_label((string) ($entry['post_type'] ?? ''))); ?></td>
+                                <td><?php echo esc_html($this->get_validation_result_label((string) ($entry['result_status'] ?? 'issues'))); ?></td>
+                                <td><?php echo esc_html($this->get_validation_severity_label((string) ($entry['severity'] ?? 'none'))); ?></td>
+                                <td><?php echo esc_html($this->format_validation_issue_types((array) ($entry['issue_types'] ?? []))); ?></td>
+                                <td><?php echo esc_html((string) ($entry['issue_count'] ?? 0)); ?></td>
+                                <td style="word-break:break-word;"><?php echo esc_html($entry['issue_summary'] ?: __('无异常', 'image2url-clipboard-booster')); ?></td>
+                                <td><?php echo esc_html((string) ($entry['checked_at'] ?? '')); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php if (count($ordered_entries) > count($preview_entries)) : ?>
+                    <p class="description"><?php echo esc_html(sprintf(__('当前筛选命中 %1$d 条，仅展示前 %2$d 条。其余结果请导出 CSV 查看完整明细。', 'image2url-clipboard-booster'), count($ordered_entries), count($preview_entries))); ?></p>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -565,12 +868,12 @@ class Image2URL_Migrations
         global $wpdb;
 
         if (current_user_can('manage_options')) {
-            return $wpdb->get_results("SELECT id, status, total_posts, processed_posts, localized_count, replaced_count, failed_count, updated_at FROM {$this->jobs_table_name} ORDER BY updated_at DESC, id DESC LIMIT 10", ARRAY_A);
+            return $wpdb->get_results("SELECT id, job_type, status, total_posts, processed_posts, localized_count, replaced_count, failed_count, updated_at FROM {$this->jobs_table_name} ORDER BY updated_at DESC, id DESC LIMIT 10", ARRAY_A);
         }
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, status, total_posts, processed_posts, localized_count, replaced_count, failed_count, updated_at
+                "SELECT id, job_type, status, total_posts, processed_posts, localized_count, replaced_count, failed_count, updated_at
                 FROM {$this->jobs_table_name}
                 WHERE created_by = %d
                 ORDER BY updated_at DESC, id DESC
@@ -606,10 +909,216 @@ class Image2URL_Migrations
         return is_array($row) ? $row : null;
     }
 
-    private function create_batch_job(array $post_ids): int
+    private function get_job_report_entries(array $job): array
+    {
+        if ('validation' !== $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'))) {
+            return [];
+        }
+
+        $decoded = json_decode((string) ($job['report_json'] ?? '[]'), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($decoded as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $entries[] = $this->normalize_job_report_entry($entry);
+        }
+
+        return $entries;
+    }
+
+    private function normalize_job_report_entry(array $entry): array
+    {
+        $issues = [];
+        foreach ((array) ($entry['issues'] ?? []) as $issue) {
+            if (!is_string($issue) || '' === trim($issue)) {
+                continue;
+            }
+
+            $issues[] = wp_strip_all_tags($issue);
+        }
+
+        $issues = array_values(array_unique($issues));
+        $issue_types = $this->extract_validation_issue_types($issues);
+        $result_status = (string) ($entry['result_status'] ?? 'issues');
+        if (!in_array($result_status, ['passed', 'issues', 'failed'], true)) {
+            $result_status = 'issues';
+        }
+        $severity = (string) ($entry['severity'] ?? $this->calculate_validation_severity($result_status, $issue_types));
+
+        return [
+            'post_id' => (int) ($entry['post_id'] ?? 0),
+            'post_title' => (string) ($entry['post_title'] ?? ''),
+            'post_type' => (string) ($entry['post_type'] ?? ''),
+            'checked_at' => (string) ($entry['checked_at'] ?? ''),
+            'result_status' => $result_status,
+            'severity' => $severity,
+            'mapping_total' => (int) ($entry['mapping_total'] ?? 0),
+            'localized_mappings' => (int) ($entry['localized_mappings'] ?? 0),
+            'remaining_remote_count' => (int) ($entry['remaining_remote_count'] ?? 0),
+            'checked_blocks' => (int) ($entry['checked_blocks'] ?? 0),
+            'block_issues' => (int) ($entry['block_issues'] ?? 0),
+            'featured_image_id' => (int) ($entry['featured_image_id'] ?? 0),
+            'issue_count' => (int) ($entry['issue_count'] ?? count($issues)),
+            'issues' => $issues,
+            'issue_types' => $issue_types,
+            'issue_summary' => (string) ($entry['issue_summary'] ?? implode(' | ', array_slice($issues, 0, 3))),
+        ];
+    }
+
+    private function merge_validation_report_entry(array $entries, array $entry): array
+    {
+        $normalized_entry = $this->normalize_job_report_entry($entry);
+
+        foreach ($entries as $index => $existing_entry) {
+            if ((int) ($existing_entry['post_id'] ?? 0) !== (int) $normalized_entry['post_id']) {
+                continue;
+            }
+
+            $entries[$index] = $normalized_entry;
+            return array_values($entries);
+        }
+
+        $entries[] = $normalized_entry;
+
+        return array_values($entries);
+    }
+
+    private function build_validation_report_entry(int $post_id, array $result): array
+    {
+        $issues = [];
+        foreach ((array) ($result['issues'] ?? []) as $issue) {
+            if (!is_string($issue) || '' === trim($issue)) {
+                continue;
+            }
+
+            $issues[] = wp_strip_all_tags($issue);
+        }
+
+        if (!empty($result['error'])) {
+            $issues[] = wp_strip_all_tags((string) $result['error']);
+        }
+
+        $issues = array_values(array_unique($issues));
+        $issue_types = $this->extract_validation_issue_types($issues);
+        $post_title = '';
+        if (!empty($result['post_title']) && is_string($result['post_title'])) {
+            $post_title = (string) $result['post_title'];
+        } elseif ($post_id > 0) {
+            $post_title = (string) get_the_title($post_id);
+        }
+
+        $result_status = !empty($result['error'])
+            ? 'failed'
+            : (!empty($result['passed']) ? 'passed' : 'issues');
+        $severity = $this->calculate_validation_severity($result_status, $issue_types);
+
+        return [
+            'post_id' => $post_id,
+            'post_title' => $post_title,
+            'post_type' => $post_id > 0 ? (string) get_post_type($post_id) : '',
+            'checked_at' => current_time('mysql'),
+            'result_status' => $result_status,
+            'severity' => $severity,
+            'mapping_total' => (int) ($result['mapping_total'] ?? 0),
+            'localized_mappings' => (int) ($result['localized_mappings'] ?? 0),
+            'remaining_remote_count' => isset($result['remaining_remote_urls']) && is_array($result['remaining_remote_urls']) ? count($result['remaining_remote_urls']) : 0,
+            'checked_blocks' => (int) ($result['checked_blocks'] ?? 0),
+            'block_issues' => (int) ($result['block_issues'] ?? 0),
+            'featured_image_id' => (int) ($result['featured_image_id'] ?? 0),
+            'issue_count' => count($issues),
+            'issues' => $issues,
+            'issue_types' => $issue_types,
+            'issue_summary' => !empty($issues) ? implode(' | ', array_slice($issues, 0, 3)) : '',
+        ];
+    }
+
+    private function extract_validation_issue_types(array $issues): array
+    {
+        $types = [];
+        foreach ($issues as $issue) {
+            if (!is_string($issue) || '' === trim($issue)) {
+                continue;
+            }
+
+            $types[] = $this->classify_validation_issue_type($issue);
+        }
+
+        return array_values(array_unique(array_filter($types)));
+    }
+
+    private function classify_validation_issue_type(string $issue): string
+    {
+        if (false !== strpos($issue, '正文仍引用远端图片')) {
+            return 'remaining_remote';
+        }
+
+        if (false !== strpos($issue, '映射记录指向的本地附件不存在')) {
+            return 'missing_mapped_attachment';
+        }
+
+        if (false !== strpos($issue, '特色图引用的附件不存在')) {
+            return 'missing_featured_attachment';
+        }
+
+        if (false !== strpos($issue, '文章没有特色图')) {
+            return 'missing_featured_image';
+        }
+
+        if (preg_match('/^core\/image .*仍使用远端图片/u', $issue)) {
+            return 'block_remote_image';
+        }
+
+        if (preg_match('/^core\/(image|cover|media-text) 引用的本地附件不存在/u', $issue)) {
+            return 'block_missing_attachment';
+        }
+
+        if (preg_match('/^core\/(image|cover|media-text) 已切到本地 URL，但缺少附件 ID/u', $issue)) {
+            return 'block_missing_attachment_id';
+        }
+
+        if (preg_match('/^core\/(image|cover|media-text) 已有映射记录，但块属性还没绑定本地附件/u', $issue)) {
+            return 'block_unbound_mapping';
+        }
+
+        return 'other';
+    }
+
+    private function calculate_validation_severity(string $result_status, array $issue_types): string
+    {
+        if ('failed' === $result_status) {
+            return 'critical';
+        }
+
+        if ('passed' === $result_status || empty($issue_types)) {
+            return 'none';
+        }
+
+        foreach ($issue_types as $issue_type) {
+            if (in_array($issue_type, ['remaining_remote', 'missing_mapped_attachment', 'block_remote_image', 'block_missing_attachment'], true)) {
+                return 'high';
+            }
+        }
+
+        foreach ($issue_types as $issue_type) {
+            if (in_array($issue_type, ['missing_featured_attachment', 'block_missing_attachment_id', 'block_unbound_mapping'], true)) {
+                return 'medium';
+            }
+        }
+
+        return 'low';
+    }
+
+    private function create_batch_job(array $post_ids, string $job_type = 'rollback'): int
     {
         global $wpdb;
         $post_ids = array_values(array_unique(array_filter(array_map('absint', $post_ids))));
+        $job_type = $this->normalize_job_type($job_type);
         if (empty($post_ids)) {
             return 0;
         }
@@ -619,6 +1128,7 @@ class Image2URL_Migrations
             $this->jobs_table_name,
             [
                 'created_by' => get_current_user_id(),
+                'job_type' => $job_type,
                 'status' => 'queued',
                 'post_ids_json' => wp_json_encode($post_ids),
                 'current_index' => 0,
@@ -629,11 +1139,12 @@ class Image2URL_Migrations
                 'failed_count' => 0,
                 'last_message' => esc_html__('等待开始。', 'image2url-clipboard-booster'),
                 'error_log' => '',
+                'report_json' => '[]',
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
                 'completed_at' => null,
             ],
-            ['%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
         );
 
         if (false === $inserted) {
@@ -705,6 +1216,7 @@ class Image2URL_Migrations
             return $this->get_job((int) $job['id']);
         }
 
+        $job_type = $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'));
         $current_index = (int) $job['current_index'];
         $processed_posts = (int) $job['processed_posts'];
         $localized_count = (int) $job['localized_count'];
@@ -712,6 +1224,7 @@ class Image2URL_Migrations
         $failed_count = (int) $job['failed_count'];
         $last_message = (string) $job['last_message'];
         $job_log = isset($job['error_log']) ? (string) $job['error_log'] : '';
+        $job_reports = 'validation' === $job_type ? $this->get_job_report_entries($job) : [];
         $batch_messages = [];
         $processed_in_batch = 0;
         $total_posts = count($post_ids);
@@ -721,7 +1234,9 @@ class Image2URL_Migrations
             (int) $job['id'],
             [
                 'status' => 'running',
-                'last_message' => esc_html__('后台正在处理当前批次。', 'image2url-clipboard-booster'),
+                'last_message' => 'validation' === $job_type
+                    ? esc_html__('后台正在验证当前批次。', 'image2url-clipboard-booster')
+                    : esc_html__('后台正在处理当前批次。', 'image2url-clipboard-booster'),
                 'updated_at' => current_time('mysql'),
                 'completed_at' => null,
             ]
@@ -741,34 +1256,92 @@ class Image2URL_Migrations
                 continue;
             }
 
-            $result = $this->rollback_post($post_id, $actor_user_id);
+            $result = 'validation' === $job_type
+                ? $this->validate_post_localization($post_id, $actor_user_id)
+                : $this->rollback_post($post_id, $actor_user_id);
+
             if (!empty($result['error'])) {
                 $failed_count++;
-                $message = sprintf(esc_html__('文章 #%1$d 处理失败：%2$s', 'image2url-clipboard-booster'), $post_id, $result['error']);
+                if ('validation' === $job_type) {
+                    $job_reports = $this->merge_validation_report_entry($job_reports, $this->build_validation_report_entry($post_id, $result));
+                }
+                $message = sprintf(
+                    'validation' === $job_type
+                        ? esc_html__('文章 #%1$d 验证失败：%2$s', 'image2url-clipboard-booster')
+                        : esc_html__('文章 #%1$d 处理失败：%2$s', 'image2url-clipboard-booster'),
+                    $post_id,
+                    $result['error']
+                );
                 $batch_messages[] = $message;
                 $last_message = $message;
                 continue;
             }
 
-            $localized_count += (int) ($result['localized'] ?? 0);
-            $replaced_count += (int) ($result['replaced'] ?? 0);
-            if (!empty($result['failed'])) {
-                $failed_count += (int) $result['failed'];
-                $batch_messages[] = sprintf(esc_html__('文章 #%1$d 已完成，但有 %2$d 项失败。', 'image2url-clipboard-booster'), $post_id, (int) $result['failed']);
+            if ('validation' === $job_type) {
+                $issue_count = isset($result['issues']) && is_array($result['issues']) ? count($result['issues']) : 0;
+                $job_reports = $this->merge_validation_report_entry($job_reports, $this->build_validation_report_entry($post_id, $result));
+                if (!empty($result['passed'])) {
+                    $localized_count++;
+                    $last_message = sprintf(
+                        esc_html__('文章 #%1$d 验证通过。', 'image2url-clipboard-booster'),
+                        $post_id
+                    );
+                } else {
+                    $replaced_count += $issue_count;
+                    $issue_summary = sprintf(
+                        esc_html__('文章 #%1$d 验证发现 %2$d 项问题。', 'image2url-clipboard-booster'),
+                        $post_id,
+                        $issue_count
+                    );
+                    $batch_messages[] = $issue_summary;
+                    $last_message = $issue_summary;
+
+                    foreach ((array) ($result['issues'] ?? []) as $issue) {
+                        if (!is_string($issue) || '' === trim($issue)) {
+                            continue;
+                        }
+
+                        $batch_messages[] = sprintf(
+                            esc_html__('文章 #%1$d：%2$s', 'image2url-clipboard-booster'),
+                            $post_id,
+                            wp_strip_all_tags($issue)
+                        );
+                    }
+                }
+            } else {
+                $localized_count += (int) ($result['localized'] ?? 0);
+                $replaced_count += (int) ($result['replaced'] ?? 0);
+                if (!empty($result['failed'])) {
+                    $failed_count += (int) $result['failed'];
+                    $batch_messages[] = sprintf(esc_html__('文章 #%1$d 已完成，但有 %2$d 项失败。', 'image2url-clipboard-booster'), $post_id, (int) $result['failed']);
+                }
+                $last_message = sprintf(esc_html__('文章 #%1$d 已处理，替换 %2$d 处。', 'image2url-clipboard-booster'), $post_id, (int) ($result['replaced'] ?? 0));
             }
-            $last_message = sprintf(esc_html__('文章 #%1$d 已处理，替换 %2$d 处。', 'image2url-clipboard-booster'), $post_id, (int) ($result['replaced'] ?? 0));
         }
 
         $status = 'running';
         $completed_at = null;
         if ($current_index >= $total_posts) {
-            $status = $failed_count > 0 ? 'completed_with_errors' : 'completed';
+            $has_issues = 'validation' === $job_type ? ($replaced_count > 0 || $failed_count > 0) : ($failed_count > 0);
+            $status = $has_issues ? 'completed_with_errors' : 'completed';
             $completed_at = current_time('mysql');
-            $last_message = 'completed' === $status ? esc_html__('批量回退任务已完成。', 'image2url-clipboard-booster') : esc_html__('批量回退任务已完成，但存在失败项。', 'image2url-clipboard-booster');
+            if ('validation' === $job_type) {
+                $last_message = 'completed' === $status
+                    ? esc_html__('批量验证任务已完成，未发现问题。', 'image2url-clipboard-booster')
+                    : esc_html__('批量验证任务已完成，但发现问题或失败项。', 'image2url-clipboard-booster');
+            } else {
+                $last_message = 'completed' === $status
+                    ? esc_html__('批量回退任务已完成。', 'image2url-clipboard-booster')
+                    : esc_html__('批量回退任务已完成，但存在失败项。', 'image2url-clipboard-booster');
+            }
         }
 
         $job_log = $this->append_job_log($job_log, $batch_messages);
-        $this->update_job((int) $job['id'], ['status' => $status, 'current_index' => $current_index, 'processed_posts' => $processed_posts, 'localized_count' => $localized_count, 'replaced_count' => $replaced_count, 'failed_count' => $failed_count, 'last_message' => $last_message, 'error_log' => $job_log, 'updated_at' => current_time('mysql'), 'completed_at' => $completed_at]);
+        $job_update = ['status' => $status, 'current_index' => $current_index, 'processed_posts' => $processed_posts, 'localized_count' => $localized_count, 'replaced_count' => $replaced_count, 'failed_count' => $failed_count, 'last_message' => $last_message, 'error_log' => $job_log, 'updated_at' => current_time('mysql'), 'completed_at' => $completed_at];
+        if ('validation' === $job_type) {
+            $job_update['report_json'] = wp_json_encode($job_reports);
+        }
+        $this->update_job((int) $job['id'], $job_update);
 
         return $this->get_job((int) $job['id']);
     }
@@ -790,7 +1363,7 @@ class Image2URL_Migrations
         if ($job_id <= 0 || empty($fields)) {
             return;
         }
-        $allowed = ['status' => '%s', 'post_ids_json' => '%s', 'current_index' => '%d', 'total_posts' => '%d', 'processed_posts' => '%d', 'localized_count' => '%d', 'replaced_count' => '%d', 'failed_count' => '%d', 'last_message' => '%s', 'error_log' => '%s', 'updated_at' => '%s', 'completed_at' => '%s'];
+        $allowed = ['status' => '%s', 'post_ids_json' => '%s', 'current_index' => '%d', 'total_posts' => '%d', 'processed_posts' => '%d', 'localized_count' => '%d', 'replaced_count' => '%d', 'failed_count' => '%d', 'last_message' => '%s', 'error_log' => '%s', 'report_json' => '%s', 'updated_at' => '%s', 'completed_at' => '%s'];
         $data = [];
         $formats = [];
         foreach ($fields as $key => $value) {
@@ -809,11 +1382,13 @@ class Image2URL_Migrations
     private function format_job_for_response(array $job): array
     {
         $job_id = (int) $job['id'];
+        $job_type = $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'));
         $total_posts = max(0, (int) ($job['total_posts'] ?? 0));
         $processed_posts = max(0, (int) ($job['processed_posts'] ?? 0));
         $status = (string) ($job['status'] ?? '');
         return [
             'id' => $job_id,
+            'jobType' => $job_type,
             'status' => $status,
             'processedPosts' => $processed_posts,
             'totalPosts' => $total_posts,
@@ -829,6 +1404,326 @@ class Image2URL_Migrations
         ];
     }
 
+    private function normalize_job_type(string $job_type): string
+    {
+        return 'validation' === $job_type ? 'validation' : 'rollback';
+    }
+
+    private function get_job_type_label(string $job_type): string
+    {
+        return 'validation' === $this->normalize_job_type($job_type)
+            ? esc_html__('批量验证', 'image2url-clipboard-booster')
+            : esc_html__('批量回退', 'image2url-clipboard-booster');
+    }
+
+    private function get_job_metric_labels(string $job_type): array
+    {
+        if ('validation' === $this->normalize_job_type($job_type)) {
+            return [
+                'primary' => esc_html__('通过文章', 'image2url-clipboard-booster'),
+                'secondary' => esc_html__('问题项', 'image2url-clipboard-booster'),
+                'failure' => esc_html__('失败文章', 'image2url-clipboard-booster'),
+            ];
+        }
+
+        return [
+            'primary' => esc_html__('下载到本地', 'image2url-clipboard-booster'),
+            'secondary' => esc_html__('内容替换', 'image2url-clipboard-booster'),
+            'failure' => esc_html__('失败', 'image2url-clipboard-booster'),
+        ];
+    }
+
+    private function get_job_results_summary(array $job): string
+    {
+        $job_type = $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'));
+
+        if ('validation' === $job_type) {
+            return sprintf(
+                esc_html__('通过 %1$d / 问题 %2$d / 失败 %3$d', 'image2url-clipboard-booster'),
+                (int) ($job['localized_count'] ?? 0),
+                (int) ($job['replaced_count'] ?? 0),
+                (int) ($job['failed_count'] ?? 0)
+            );
+        }
+
+        return sprintf(
+            esc_html__('下载 %1$d / 替换 %2$d / 失败 %3$d', 'image2url-clipboard-booster'),
+            (int) ($job['localized_count'] ?? 0),
+            (int) ($job['replaced_count'] ?? 0),
+            (int) ($job['failed_count'] ?? 0)
+        );
+    }
+
+    private function get_validation_result_label(string $result_status): string
+    {
+        switch ($result_status) {
+            case 'passed':
+                return esc_html__('通过', 'image2url-clipboard-booster');
+            case 'failed':
+                return esc_html__('执行失败', 'image2url-clipboard-booster');
+            default:
+                return esc_html__('发现问题', 'image2url-clipboard-booster');
+        }
+    }
+
+    private function get_validation_issue_type_label(string $issue_type): string
+    {
+        switch ($issue_type) {
+            case 'remaining_remote':
+                return esc_html__('正文残留外链', 'image2url-clipboard-booster');
+            case 'missing_mapped_attachment':
+                return esc_html__('映射附件缺失', 'image2url-clipboard-booster');
+            case 'missing_featured_attachment':
+                return esc_html__('特色图附件缺失', 'image2url-clipboard-booster');
+            case 'missing_featured_image':
+                return esc_html__('缺少特色图', 'image2url-clipboard-booster');
+            case 'block_remote_image':
+                return esc_html__('区块仍用外链', 'image2url-clipboard-booster');
+            case 'block_missing_attachment':
+                return esc_html__('区块附件缺失', 'image2url-clipboard-booster');
+            case 'block_missing_attachment_id':
+                return esc_html__('区块缺少附件 ID', 'image2url-clipboard-booster');
+            case 'block_unbound_mapping':
+                return esc_html__('区块未绑定映射', 'image2url-clipboard-booster');
+            default:
+                return esc_html__('其他问题', 'image2url-clipboard-booster');
+        }
+    }
+
+    private function format_validation_issue_types(array $issue_types): string
+    {
+        if (empty($issue_types)) {
+            return esc_html__('无异常', 'image2url-clipboard-booster');
+        }
+
+        $labels = [];
+        foreach ($issue_types as $issue_type) {
+            if (!is_string($issue_type) || '' === trim($issue_type)) {
+                continue;
+            }
+
+            $labels[] = $this->get_validation_issue_type_label($issue_type);
+        }
+
+        $labels = array_values(array_unique(array_filter($labels)));
+
+        return !empty($labels)
+            ? implode(' / ', $labels)
+            : esc_html__('其他问题', 'image2url-clipboard-booster');
+    }
+
+    private function get_validation_severity_label(string $severity): string
+    {
+        switch ($severity) {
+            case 'critical':
+                return esc_html__('阻断', 'image2url-clipboard-booster');
+            case 'high':
+                return esc_html__('高', 'image2url-clipboard-booster');
+            case 'medium':
+                return esc_html__('中', 'image2url-clipboard-booster');
+            case 'low':
+                return esc_html__('低', 'image2url-clipboard-booster');
+            default:
+                return esc_html__('通过', 'image2url-clipboard-booster');
+        }
+    }
+
+    private function get_validation_post_type_label(string $post_type): string
+    {
+        if ('' === trim($post_type)) {
+            return esc_html__('未知', 'image2url-clipboard-booster');
+        }
+
+        $post_type_object = get_post_type_object($post_type);
+
+        return $post_type_object && !empty($post_type_object->labels->singular_name)
+            ? (string) $post_type_object->labels->singular_name
+            : $post_type;
+    }
+
+    private function get_validation_result_filter_options(): array
+    {
+        return [
+            'all' => esc_html__('全部', 'image2url-clipboard-booster'),
+            'issues' => esc_html__('仅问题', 'image2url-clipboard-booster'),
+            'failed' => esc_html__('仅失败', 'image2url-clipboard-booster'),
+            'passed' => esc_html__('仅通过', 'image2url-clipboard-booster'),
+        ];
+    }
+
+    private function get_validation_severity_filter_options(): array
+    {
+        return [
+            'all' => esc_html__('全部', 'image2url-clipboard-booster'),
+            'critical' => esc_html__('阻断', 'image2url-clipboard-booster'),
+            'high' => esc_html__('高', 'image2url-clipboard-booster'),
+            'medium' => esc_html__('中', 'image2url-clipboard-booster'),
+            'low' => esc_html__('低', 'image2url-clipboard-booster'),
+            'none' => esc_html__('通过', 'image2url-clipboard-booster'),
+        ];
+    }
+
+    private function get_validation_report_filters(): array
+    {
+        $result_status = isset($_GET['image2url_validation_result']) ? sanitize_key(wp_unslash($_GET['image2url_validation_result'])) : 'all';
+        $issue_type = isset($_GET['image2url_validation_issue_type']) ? sanitize_key(wp_unslash($_GET['image2url_validation_issue_type'])) : 'all';
+        $severity = isset($_GET['image2url_validation_severity']) ? sanitize_key(wp_unslash($_GET['image2url_validation_severity'])) : 'all';
+        $post_type = isset($_GET['image2url_validation_post_type']) ? sanitize_key(wp_unslash($_GET['image2url_validation_post_type'])) : 'all';
+
+        if (!array_key_exists($result_status, $this->get_validation_result_filter_options())) {
+            $result_status = 'all';
+        }
+
+        if ('all' !== $issue_type && !in_array($issue_type, ['remaining_remote', 'missing_mapped_attachment', 'missing_featured_attachment', 'missing_featured_image', 'block_remote_image', 'block_missing_attachment', 'block_missing_attachment_id', 'block_unbound_mapping', 'other'], true)) {
+            $issue_type = 'all';
+        }
+
+        if (!array_key_exists($severity, $this->get_validation_severity_filter_options())) {
+            $severity = 'all';
+        }
+
+        if ('all' !== $post_type && !post_type_exists($post_type)) {
+            $post_type = 'all';
+        }
+
+        return [
+            'result_status' => $result_status,
+            'issue_type' => $issue_type,
+            'severity' => $severity,
+            'post_type' => $post_type,
+        ];
+    }
+
+    private function summarize_validation_report_entries(array $entries): array
+    {
+        $result_counts = [
+            'all' => count($entries),
+            'issues' => 0,
+            'failed' => 0,
+            'passed' => 0,
+        ];
+        $severity_counts = [
+            'all' => count($entries),
+            'critical' => 0,
+            'high' => 0,
+            'medium' => 0,
+            'low' => 0,
+            'none' => 0,
+        ];
+        $issue_type_counts = [];
+        $post_type_counts = [];
+
+        foreach ($entries as $entry) {
+            $result_status = (string) ($entry['result_status'] ?? 'issues');
+            if (isset($result_counts[$result_status])) {
+                $result_counts[$result_status]++;
+            }
+
+            $severity = (string) ($entry['severity'] ?? 'none');
+            if (isset($severity_counts[$severity])) {
+                $severity_counts[$severity]++;
+            }
+
+            $post_type = (string) ($entry['post_type'] ?? '');
+            if ('' !== $post_type) {
+                if (!isset($post_type_counts[$post_type])) {
+                    $post_type_counts[$post_type] = 0;
+                }
+
+                $post_type_counts[$post_type]++;
+            }
+
+            foreach ((array) ($entry['issue_types'] ?? []) as $issue_type) {
+                if (!is_string($issue_type) || '' === trim($issue_type)) {
+                    continue;
+                }
+
+                if (!isset($issue_type_counts[$issue_type])) {
+                    $issue_type_counts[$issue_type] = 0;
+                }
+
+                $issue_type_counts[$issue_type]++;
+            }
+        }
+
+        arsort($issue_type_counts);
+        arsort($post_type_counts);
+
+        return [
+            'result_counts' => $result_counts,
+            'severity_counts' => $severity_counts,
+            'post_type_counts' => $post_type_counts,
+            'issue_type_counts' => $issue_type_counts,
+        ];
+    }
+
+    private function filter_validation_report_entries(array $entries, string $result_status, string $issue_type, string $severity, string $post_type): array
+    {
+        return array_values(array_filter($entries, static function (array $entry) use ($result_status, $issue_type, $severity, $post_type): bool {
+            $entry_result = (string) ($entry['result_status'] ?? 'issues');
+            if ('all' !== $result_status && $entry_result !== $result_status) {
+                return false;
+            }
+
+            if ('all' !== $issue_type && !in_array($issue_type, (array) ($entry['issue_types'] ?? []), true)) {
+                return false;
+            }
+
+            $entry_severity = (string) ($entry['severity'] ?? 'none');
+            if ('all' !== $severity && $entry_severity !== $severity) {
+                return false;
+            }
+
+            $entry_post_type = (string) ($entry['post_type'] ?? '');
+            if ('all' !== $post_type && $entry_post_type !== $post_type) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function prioritize_validation_report_entries(array $entries): array
+    {
+        usort($entries, static function (array $left, array $right): int {
+            $priority_map = [
+                'failed' => 0,
+                'issues' => 1,
+                'passed' => 2,
+            ];
+            $severity_map = [
+                'critical' => 0,
+                'high' => 1,
+                'medium' => 2,
+                'low' => 3,
+                'none' => 4,
+            ];
+
+            $left_priority = $priority_map[(string) ($left['result_status'] ?? 'issues')] ?? 3;
+            $right_priority = $priority_map[(string) ($right['result_status'] ?? 'issues')] ?? 3;
+
+            if ($left_priority !== $right_priority) {
+                return $left_priority <=> $right_priority;
+            }
+
+            $left_severity = $severity_map[(string) ($left['severity'] ?? 'none')] ?? 5;
+            $right_severity = $severity_map[(string) ($right['severity'] ?? 'none')] ?? 5;
+            if ($left_severity !== $right_severity) {
+                return $left_severity <=> $right_severity;
+            }
+
+            $left_issue_count = (int) ($left['issue_count'] ?? 0);
+            $right_issue_count = (int) ($right['issue_count'] ?? 0);
+            if ($left_issue_count !== $right_issue_count) {
+                return $right_issue_count <=> $left_issue_count;
+            }
+
+            return strcmp((string) ($right['checked_at'] ?? ''), (string) ($left['checked_at'] ?? ''));
+        });
+
+        return array_values($entries);
+    }
+
     private function get_job_button_label(string $status): string
     {
         if (in_array($status, ['completed', 'completed_with_errors'], true)) {
@@ -840,6 +1735,115 @@ class Image2URL_Migrations
         }
 
         return 'running' === $status ? esc_html__('后台执行中', 'image2url-clipboard-booster') : esc_html__('开始执行', 'image2url-clipboard-booster');
+    }
+
+    private function build_job_export_link(int $job_id): string
+    {
+        return wp_nonce_url(
+            add_query_arg(
+                [
+                    'page' => 'image2url-migration',
+                    'job_id' => $job_id,
+                    'image2url_migration_action' => 'export_job_report',
+                ],
+                admin_url('tools.php')
+            ),
+            'image2url_export_job_report_' . $job_id
+        );
+    }
+
+    private function build_validation_report_filter_link(int $job_id, array $filters = []): string
+    {
+        $query_args = [
+            'page' => 'image2url-migration',
+            'job_id' => $job_id,
+            'image2url_validation_result' => isset($filters['image2url_validation_result']) ? $filters['image2url_validation_result'] : (isset($_GET['image2url_validation_result']) ? sanitize_key(wp_unslash($_GET['image2url_validation_result'])) : 'all'),
+            'image2url_validation_issue_type' => isset($filters['image2url_validation_issue_type']) ? $filters['image2url_validation_issue_type'] : (isset($_GET['image2url_validation_issue_type']) ? sanitize_key(wp_unslash($_GET['image2url_validation_issue_type'])) : 'all'),
+            'image2url_validation_severity' => isset($filters['image2url_validation_severity']) ? $filters['image2url_validation_severity'] : (isset($_GET['image2url_validation_severity']) ? sanitize_key(wp_unslash($_GET['image2url_validation_severity'])) : 'all'),
+            'image2url_validation_post_type' => isset($filters['image2url_validation_post_type']) ? $filters['image2url_validation_post_type'] : (isset($_GET['image2url_validation_post_type']) ? sanitize_key(wp_unslash($_GET['image2url_validation_post_type'])) : 'all'),
+        ];
+
+        if ('all' === $query_args['image2url_validation_result']) {
+            unset($query_args['image2url_validation_result']);
+        }
+
+        if ('all' === $query_args['image2url_validation_issue_type']) {
+            unset($query_args['image2url_validation_issue_type']);
+        }
+
+        if ('all' === $query_args['image2url_validation_severity']) {
+            unset($query_args['image2url_validation_severity']);
+        }
+
+        if ('all' === $query_args['image2url_validation_post_type']) {
+            unset($query_args['image2url_validation_post_type']);
+        }
+
+        return add_query_arg($query_args, admin_url('tools.php'));
+    }
+
+    private function export_validation_job_report(int $job_id): void
+    {
+        $job = $this->get_job($job_id);
+        if (!$job) {
+            add_settings_error('image2url_migration', 'image2url_export_missing', esc_html__('未找到可导出的验证任务。', 'image2url-clipboard-booster'), 'error');
+            return;
+        }
+
+        if (!$this->can_access_job($job)) {
+            add_settings_error('image2url_migration', 'image2url_export_forbidden', esc_html__('您没有权限导出这个验证任务。', 'image2url-clipboard-booster'), 'error');
+            return;
+        }
+
+        if ('validation' !== $this->normalize_job_type((string) ($job['job_type'] ?? 'rollback'))) {
+            add_settings_error('image2url_migration', 'image2url_export_invalid_type', esc_html__('只有批量验证任务支持导出 CSV。', 'image2url-clipboard-booster'), 'error');
+            return;
+        }
+
+        $entries = $this->get_job_report_entries($job);
+        $filename = sprintf('image2url-validation-job-%d-%s.csv', $job_id, gmdate('Ymd-His'));
+
+        if (function_exists('nocache_headers')) {
+            nocache_headers();
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+
+        $output = fopen('php://output', 'w');
+        if (false === $output) {
+            wp_die(esc_html__('无法创建导出文件。', 'image2url-clipboard-booster'));
+        }
+
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, ['job_id', 'post_id', 'post_title', 'post_type_label', 'result', 'severity', 'issue_types', 'mapping_total', 'localized_mappings', 'remaining_remote_count', 'checked_blocks', 'block_issues', 'featured_image_id', 'issue_count', 'issues', 'checked_at']);
+
+        foreach ($entries as $entry) {
+            fputcsv(
+                $output,
+                [
+                    $job_id,
+                    (int) ($entry['post_id'] ?? 0),
+                    (string) ($entry['post_title'] ?? ''),
+                    $this->get_validation_post_type_label((string) ($entry['post_type'] ?? '')),
+                    $this->get_validation_result_label((string) ($entry['result_status'] ?? 'issues')),
+                    $this->get_validation_severity_label((string) ($entry['severity'] ?? 'none')),
+                    $this->format_validation_issue_types((array) ($entry['issue_types'] ?? [])),
+                    (int) ($entry['mapping_total'] ?? 0),
+                    (int) ($entry['localized_mappings'] ?? 0),
+                    (int) ($entry['remaining_remote_count'] ?? 0),
+                    (int) ($entry['checked_blocks'] ?? 0),
+                    (int) ($entry['block_issues'] ?? 0),
+                    (int) ($entry['featured_image_id'] ?? 0),
+                    (int) ($entry['issue_count'] ?? 0),
+                    implode(' | ', (array) ($entry['issues'] ?? [])),
+                    (string) ($entry['checked_at'] ?? ''),
+                ]
+            );
+        }
+
+        fclose($output);
+        exit;
     }
 
     private function build_job_link(int $job_id): string
@@ -935,6 +1939,34 @@ class Image2URL_Migrations
             return [];
         }
         return array_values(array_unique(array_filter(array_map('absint', $parts))));
+    }
+
+    private function get_all_auditable_post_ids(): array
+    {
+        $post_types = get_post_types(['public' => true], 'names');
+        unset($post_types['attachment']);
+
+        if (empty($post_types)) {
+            return [];
+        }
+
+        $query_args = [
+            'post_type' => array_values($post_types),
+            'post_status' => 'publish',
+            'fields' => 'ids',
+            'posts_per_page' => -1,
+            'orderby' => 'ID',
+            'order' => 'ASC',
+            'no_found_rows' => true,
+        ];
+
+        if (!current_user_can('manage_options')) {
+            $query_args['author'] = get_current_user_id();
+        }
+
+        $post_ids = get_posts($query_args);
+
+        return is_array($post_ids) ? array_values(array_unique(array_filter(array_map('absint', $post_ids)))) : [];
     }
 
     private function validate_target_post(int $post_id, int $actor_user_id = 0)
@@ -1561,6 +2593,92 @@ class Image2URL_Migrations
         return (bool) set_post_thumbnail($post_id, $attachment_id);
     }
 
+    private function collect_block_validation_issues(array $blocks, array $mapping_index, array &$issues, array &$summary): void
+    {
+        foreach ($blocks as $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            $block_name = (string) ($block['blockName'] ?? '');
+            $remote_url = '';
+            $attachment_id = 0;
+            $is_supported_block = false;
+
+            if ('core/image' === $block_name) {
+                $remote_url = $this->detect_image_block_url($block);
+                $attachment_id = $this->extract_supported_block_attachment_id($block);
+                $is_supported_block = true;
+            } elseif ('core/cover' === $block_name) {
+                $remote_url = $this->detect_cover_block_url($block);
+                $attachment_id = $this->extract_supported_block_attachment_id($block);
+                $is_supported_block = true;
+            } elseif ('core/media-text' === $block_name) {
+                $remote_url = $this->detect_media_text_block_url($block);
+                $attachment_id = $this->extract_supported_block_attachment_id($block);
+                $is_supported_block = true;
+            }
+
+            if ($is_supported_block) {
+                $summary['checked']++;
+
+                if ('' !== $remote_url && $this->is_external_image_url($remote_url)) {
+                    $summary['issues']++;
+                    $issues[] = sprintf(
+                        esc_html__('%1$s 仍使用远端图片：%2$s', 'image2url-clipboard-booster'),
+                        $block_name,
+                        $remote_url
+                    );
+                }
+
+                if ($attachment_id > 0 && !get_post($attachment_id)) {
+                    $summary['issues']++;
+                    $issues[] = sprintf(
+                        esc_html__('%1$s 引用的本地附件不存在：#%2$d', 'image2url-clipboard-booster'),
+                        $block_name,
+                        $attachment_id
+                    );
+                }
+
+                if (!$this->is_external_image_url($remote_url) && 0 === $attachment_id && '' !== $remote_url) {
+                    $summary['issues']++;
+                    $issues[] = sprintf(
+                        esc_html__('%1$s 已切到本地 URL，但缺少附件 ID。', 'image2url-clipboard-booster'),
+                        $block_name
+                    );
+                }
+
+                if ('' !== $remote_url && isset($mapping_index[$remote_url]) && !empty($mapping_index[$remote_url]['local_attachment_id']) && 0 === $attachment_id) {
+                    $summary['issues']++;
+                    $issues[] = sprintf(
+                        esc_html__('%1$s 已有映射记录，但块属性还没绑定本地附件。', 'image2url-clipboard-booster'),
+                        $block_name
+                    );
+                }
+            }
+
+            if (!empty($block['innerBlocks']) && is_array($block['innerBlocks'])) {
+                $this->collect_block_validation_issues($block['innerBlocks'], $mapping_index, $issues, $summary);
+            }
+        }
+    }
+
+    private function extract_supported_block_attachment_id(array $block): int
+    {
+        $attrs = isset($block['attrs']) && is_array($block['attrs']) ? $block['attrs'] : [];
+        $block_name = (string) ($block['blockName'] ?? '');
+
+        if (in_array($block_name, ['core/image', 'core/cover'], true) && !empty($attrs['id'])) {
+            return absint($attrs['id']);
+        }
+
+        if ('core/media-text' === $block_name && !empty($attrs['mediaId'])) {
+            return absint($attrs['mediaId']);
+        }
+
+        return 0;
+    }
+
     private function find_featured_image_candidate(string $content, array $attachment_map): int
     {
         if (function_exists('has_blocks') && function_exists('parse_blocks') && has_blocks($content)) {
@@ -1622,6 +2740,22 @@ class Image2URL_Migrations
         return is_array($row) ? $row : null;
     }
 
+    private function get_post_mappings(int $post_id): array
+    {
+        global $wpdb;
+        if ($post_id <= 0) {
+            return [];
+        }
+
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->mapping_table_name} WHERE post_id = %d ORDER BY id DESC",
+                $post_id
+            ),
+            ARRAY_A
+        );
+    }
+
     private function upsert_mapping(int $post_id, string $remote_url, array $fields = []): void
     {
         global $wpdb;
@@ -1679,6 +2813,7 @@ class Image2URL_Migrations
         $jobs_sql = "CREATE TABLE {$this->jobs_table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            job_type varchar(32) NOT NULL DEFAULT 'rollback',
             status varchar(32) NOT NULL DEFAULT 'queued',
             post_ids_json longtext NOT NULL,
             current_index int(11) NOT NULL DEFAULT 0,
@@ -1689,11 +2824,13 @@ class Image2URL_Migrations
             failed_count int(11) NOT NULL DEFAULT 0,
             last_message text NULL,
             error_log longtext NULL,
+            report_json longtext NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             completed_at datetime NULL DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY created_by (created_by),
+            KEY job_type (job_type),
             KEY status (status),
             KEY updated_at (updated_at)
         ) {$charset_collate};";
